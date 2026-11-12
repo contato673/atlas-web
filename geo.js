@@ -7,9 +7,13 @@ export const CONFIG = {
   MAX_SPEED_KMH: 25, // limite de velocidade
 
   // --- PROPOSTAS, não aprovadas (seção 10: pendências). Ajustar após testes de campo. ---
-  LEAVE_RADIUS_M: 40, // distância que conta como "saiu da zona inicial"
+  LEAVE_RADIUS_M: 25, // distância que conta como "saiu da zona inicial"
   MAX_ACCURACY_M: 35, // leituras com precisão pior que isto não mudam o estado
-  MIN_POINT_SPACING_M: 3, // não grava pontos mais próximos que isto do anterior
+  MIN_POINT_SPACING_M: 4, // não grava pontos mais próximos que isto do anterior
+  // Com GPS ruim o ponto "anda" sozinho. Só vira vértice quem se afastou mais
+  // do que o próprio erro da leitura: é isso que tira o zigue-zague do traçado.
+  JITTER_FACTOR: 0.7,
+  ACC_AVISO_M: 22, // acima disto, avisa que o sinal está ruim
 };
 
 const R = 6371008.8; // raio médio da Terra em metros
@@ -57,6 +61,8 @@ export class RouteSession {
     this.distanceM = 0;
     this.startedAt = null;
     this.lastDistToOrigin = 0;
+    this.maxDistToOrigin = 0; // o mais longe que chegou do início
+    this.descartados = 0;     // leituras engolidas pelo filtro de ruído
   }
 
   /** Início MANUAL da rota. Exige uma leitura de GPS aceitável. */
@@ -97,13 +103,18 @@ export class RouteSession {
       return { accepted: false, reason: 'velocidade', speedKmh };
     }
 
-    if (step >= this.cfg.MIN_POINT_SPACING_M) {
+    // separação mínima proporcional ao erro da leitura
+    const separacao = Math.max(this.cfg.MIN_POINT_SPACING_M, p.acc * this.cfg.JITTER_FACTOR);
+    if (step >= separacao) {
       this.points.push({ ...p });
       this.distanceM += step;
+    } else {
+      this.descartados++;
     }
 
     const dist = haversine(this.origin, p);
     this.lastDistToOrigin = dist;
+    if (dist > this.maxDistToOrigin) this.maxDistToOrigin = dist;
     if (dist > this.cfg.LEAVE_RADIUS_M) this.leftZone = true;
 
     const before = this.state;
@@ -112,6 +123,8 @@ export class RouteSession {
     return {
       accepted: true,
       distToOrigin: dist,
+      maxDistToOrigin: this.maxDistToOrigin,
+      faltaParaSair: Math.max(0, this.cfg.LEAVE_RADIUS_M - this.maxDistToOrigin),
       canFinish: this.canFinish,
       justReturned: this.state === 'ready' && before !== 'ready',
       justLeftRadius: this.state === 'active' && before === 'ready',

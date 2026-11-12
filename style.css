@@ -275,9 +275,18 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
 }
 
-.maplibregl-ctrl-bottom-left { bottom: calc(env(safe-area-inset-bottom) + 240px); }
-.maplibregl-ctrl-bottom-right { bottom: calc(env(safe-area-inset-bottom) + 240px); right: 68px; }
-.maplibregl-ctrl-attrib { font-size: 10px; }
+.maplibregl-ctrl-bottom-right { display: none; }
+.maplibregl-ctrl-bottom-left {
+  bottom: calc(env(safe-area-inset-bottom) + 104px); left: 2px; opacity: .35;
+}
+.maplibregl-ctrl-bottom-left:hover, .maplibregl-ctrl-bottom-left:active { opacity: .9; }
+.maplibregl-ctrl-attrib { background: transparent !important; font-size: 9px; }
+.maplibregl-ctrl-attrib.maplibregl-compact-show { background: rgba(5, 8, 12, .9) !important; }
+.maplibregl-ctrl-attrib-button {
+  background-color: transparent !important; width: 20px !important; height: 20px !important;
+  opacity: .5; filter: invert(1);
+}
+.maplibregl-ctrl-attrib a { color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }

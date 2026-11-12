@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=13';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=14';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=13';
-import * as api from './api.js?v=13';
+} from './player.js?v=14';
+import * as api from './api.js?v=14';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -39,6 +39,7 @@ let hiddenAt = null;
 let followMe = true;
 let territorios = null;
 let sessaoServidor = null;
+let avisouGps = false;
 
 /* ===================== cores ===================== */
 function aplicarCores(p) {
@@ -403,7 +404,17 @@ async function initMap() {
 
   map = new maplibregl.Map({
     container: 'map', style, center: CAMPO_GRANDE, zoom: 12.5,
-    attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false,
+    attributionControl: false, dragRotate: false, pitchWithRotate: false,
+  });
+  // Crédito do OpenStreetMap é obrigatório, mas fica recolhido num "i" de canto.
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  map.on('idle', () => {
+    const c = document.querySelector('.maplibregl-ctrl-attrib');
+    if (c && c.classList.contains('maplibregl-compact-show') && !c.dataset.tocado) {
+      c.classList.remove('maplibregl-compact-show');
+      c.querySelector('summary, .maplibregl-ctrl-attrib-button')?.addEventListener(
+        'click', () => { c.dataset.tocado = '1'; }, { once: true });
+    }
   });
   map.touchZoomRotate.disableRotation();
   map.on('dragstart', () => { followMe = false; $('btn-centro').hidden = false; });
@@ -428,10 +439,6 @@ async function initMap() {
     map.addLayer({ id: 'terr-fill', type: 'fill', source: 'terr', paint: { 'fill-color': corEquipe, 'fill-opacity': 0.26 } });
     map.addLayer({ id: 'terr-brilho', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 10, 'line-opacity': 0.18, 'line-blur': 5 } });
     map.addLayer({ id: 'terr-line', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 2, 'line-opacity': 0.9 } });
-    map.addLayer({ id: 'terr-nome', type: 'symbol', source: 'terr', minzoom: 13,
-      layout: { 'text-field': ['get', 'rotulo'], 'text-size': 11, 'text-letter-spacing': 0.12,
-                'text-font': ['Noto Sans Regular'], 'text-max-width': 9, 'text-allow-overlap': false },
-      paint: { 'text-color': '#e9f3fb', 'text-halo-color': '#05080c', 'text-halo-width': 1.6 } });
 
     map.addSource('acc', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.07 } });
@@ -439,6 +446,10 @@ async function initMap() {
 
     map.addSource('rumo', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'rumo-line', type: 'line', source: 'rumo', paint: { 'line-color': '#ffffff', 'line-width': 1.4, 'line-opacity': 0.4, 'line-dasharray': [1, 2] } });
+
+    map.addSource('saida', { type: 'geojson', data: empty() });
+    map.addLayer({ id: 'saida-line', type: 'line', source: 'saida',
+      paint: { 'line-color': '#ffffff', 'line-width': 1.6, 'line-opacity': 0.5, 'line-dasharray': [3, 3] } });
 
     map.addSource('zone', { type: 'geojson', data: empty() });
     map.addSource('route', { type: 'geojson', data: empty() });
@@ -491,6 +502,8 @@ function drawAll() {
   if (!mapReady) return;
   map.getSource('zone').setData(session.origin ? circlePolygon(session.origin, CONFIG.FINISH_RADIUS_M) : empty());
   map.getSource('acc').setData(lastFix && lastFix.acc > 8 ? circlePolygon(lastFix, lastFix.acc) : empty());
+  map.getSource('saida').setData(session.origin && !session.leftZone
+    ? circlePolygon(session.origin, CONFIG.LEAVE_RADIUS_M) : empty());
   map.getSource('rumo').setData(session.origin && lastFix && session.leftZone && !session.canFinish
     ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lastFix.lng, lastFix.lat], [session.origin.lng, session.origin.lat]] } }
     : empty());
@@ -732,9 +745,15 @@ function render() {
   ui.perfil.disabled = st !== 'idle';
 
   if (lastFix && !SIM) {
-    const good = lastFix.acc <= CONFIG.MAX_ACCURACY_M;
+    const good = lastFix.acc <= CONFIG.ACC_AVISO_M;
     ui.gps.className = `chip ${good ? 'ok' : 'bad'}`;
     ui.gps.innerHTML = `GPS <span>±${Math.round(lastFix.acc)} m</span>`;
+    if (!good && !avisouGps) {
+      avisouGps = true;
+      banner('Sinal fraco aqui. Dentro de mercado, prédio ou garagem o GPS erra muito e o traçado sai torto — o jogo foi feito para rua aberta.');
+      setTimeout(() => { if (lastFix && lastFix.acc <= CONFIG.ACC_AVISO_M) banner(''); }, 12000);
+    }
+    if (good && avisouGps && session.state === 'idle') { avisouGps = false; banner(''); }
   }
   ui.start.disabled = !lastFix;
 
@@ -749,7 +768,11 @@ function render() {
   ui.home.textContent = fmtDist(session.lastDistToOrigin);
   const lockNote = wakeLock ? '' : ' Mantenha a tela ligada: com ela apagada o registro pausa.';
   if (st === 'ready') ui.hint.textContent = 'Você está no ponto inicial. Toque em FINALIZAR ROTA para encerrar.';
-  else if (!session.leftZone) ui.hint.textContent = `Rota em andamento. Afaste-se do ponto inicial para formar o circuito.${lockNote}`;
+  else if (!session.leftZone) {
+    const falta = Math.max(0, Math.ceil(CONFIG.LEAVE_RADIUS_M - session.maxDistToOrigin));
+    const chegou = Math.round(session.maxDistToOrigin);
+    ui.hint.textContent = `Saia do círculo pontilhado: faltam ${falta} m (você chegou a ${chegou} m do início).${lockNote}`;
+  }
   else ui.hint.textContent = `Rota em andamento. Volte a até ${CONFIG.FINISH_RADIUS_M} m do início para poder finalizar.${lockNote}`;
 }
 
