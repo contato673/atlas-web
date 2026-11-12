@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ATLAS — protótipo de rota</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <header id="top">
+    <div class="brand">ATLAS <span>protótipo</span></div>
+    <div id="gps" class="chip">GPS: aguardando…</div>
+  </header>
+
+  <div id="banner" hidden></div>
+
+  <section id="stats" hidden>
+    <div><b id="st-dist">0 m</b><span>percorrido</span></div>
+    <div><b id="st-time">00:00</b><span>tempo</span></div>
+    <div><b id="st-home">—</b><span>até o início</span></div>
+  </section>
+
+  <footer id="bar">
+    <p id="hint">Toque em INICIAR ROTA para começar a registrar.</p>
+    <button id="btn-start" class="btn primary">INICIAR ROTA</button>
+    <button id="btn-finish" class="btn finish" hidden>FINALIZAR ROTA</button>
+    <button id="btn-abandon" class="btn ghost" hidden>DESISTIR DA ROTA</button>
+  </footer>
+
+  <div id="modal" hidden>
+    <div class="card">
+      <h2 id="m-title"></h2>
+      <p id="m-text"></p>
+      <div class="row">
+        <button id="m-cancel" class="btn ghost"></button>
+        <button id="m-ok" class="btn primary"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+
+  <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
