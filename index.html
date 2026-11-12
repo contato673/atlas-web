@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -34,6 +34,10 @@
     <div><b id="st-time">00:00</b><span>tempo</span></div>
     <div><b id="st-home">—</b><span>até o início</span></div>
   </section>
+
+  <button id="btn-rank" type="button" title="Ranking">
+    <span></span><span></span><span></span>
+  </button>
 
   <footer id="bar">
     <p id="hint">Toque em INICIAR ROTA para começar a registrar.</p>
@@ -73,8 +77,8 @@
           <input id="ent-nome" type="text" maxlength="16" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="SEU APELIDO">
         </label>
         <label class="campo">
-          <span>PIN de 4 dígitos</span>
-          <input id="ent-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="••••">
+          <span>PIN de 6 dígitos</span>
+          <input id="ent-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••">
         </label>
         <p class="erro" id="ent-erro" hidden></p>
       </div>
@@ -93,8 +97,12 @@
           <input id="in-nome" type="text" maxlength="16" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="ex.: NOITE">
         </label>
         <label class="campo">
-          <span>Crie um PIN de 4 dígitos</span>
-          <input id="in-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">
+          <span>Crie um PIN de 6 dígitos</span>
+          <input id="in-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" placeholder="••••••">
+        </label>
+        <label class="campo" id="campo-codigo">
+          <span>Código de convite</span>
+          <input id="in-codigo" type="text" maxlength="16" autocapitalize="characters" spellcheck="false" placeholder="ATLAS-CG-00">
         </label>
         <p class="erro" id="cri-erro" hidden></p>
         <p class="nota">O apelido aparece como proprietário dos territórios que você conquistar. Use um apelido, não seu nome completo.</p>
@@ -185,6 +193,20 @@
     </section>
   </div>
 
+  <!-- ===================== RANKING ===================== -->
+  <div id="painel" hidden>
+    <div class="painel-card">
+      <div class="painel-top">
+        <h2>Disputa</h2>
+        <button id="painel-fechar" type="button" aria-label="Fechar">✕</button>
+      </div>
+      <div class="placar" id="placar"></div>
+      <span class="opt-tit">Ranking individual — por créditos ativos</span>
+      <ol class="rank" id="rank"></ol>
+      <p class="nota" id="rank-nota"></p>
+    </div>
+  </div>
+
   <!-- ===================== DIÁLOGOS ===================== -->
   <div id="modal" hidden>
     <div class="card">
@@ -200,6 +222,6 @@
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=4"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

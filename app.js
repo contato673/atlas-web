@@ -1,10 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=4';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=5';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=4';
+} from './player.js?v=5';
+import * as api from './api.js?v=5';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -36,6 +37,7 @@ let marker = null;
 let wakeLock = null;
 let hiddenAt = null;
 let followMe = true;
+let territorios = null;
 
 /* ===================== cores ===================== */
 function aplicarCores(p) {
@@ -52,14 +54,25 @@ function pintarHud() {
 }
 
 /* ===================== contas (por enquanto, só neste aparelho) ===================== */
-const CONTAS_KEY = 'atlas.contas.v1';
-const LORE_KEY = 'atlas.lore.v1';
-const contas = () => store.get(CONTAS_KEY) || {};
-function gravarConta(p) {
-  const c = contas();
-  c[p.apelido] = { ...p };
-  store.set(CONTAS_KEY, c);
-}
+const MOTIVOS = {
+  poucos_pontos: 'O percurso teve leituras de GPS demais de menos para ser conferido.',
+  nao_fechou: 'O percurso não voltou a até 20 m do ponto inicial.',
+  nao_saiu_da_zona: 'Você não se afastou o bastante do ponto inicial.',
+  velocidade: 'Houve trecho acima de 25 km/h. Se não foi corrida nem carro, pode ter sido falha do GPS.',
+  curta_demais: 'O percurso foi curto demais.',
+  area_pequena: 'A área fechada ficou pequena demais.',
+  circuito_invalido: 'O traçado não formou uma área fechada válida.',
+  so_area_protegida: 'Todo o circuito caiu sobre território inimigo protegido. Nada foi conquistado.',
+  sem_perfil: 'Sua conta não foi encontrada no servidor.',
+  sem_servidor: 'O servidor ainda não está ligado: a rota ficou guardada neste aparelho.',
+  rede: 'Não deu para falar com o servidor. A rota ficou guardada e será reenviada.',
+  apelido_em_uso: 'Esse apelido já está em uso.',
+  convite_invalido: 'Código de convite inválido ou já usado.',
+  sem_vagas: 'As vagas do teste fechado acabaram.',
+  confirmacao_de_email: 'O servidor está exigindo confirmação de e-mail. Desligue essa opção no painel do Supabase.',
+  pin: 'Apelido ou PIN incorreto.',
+  sem_conta: 'Não existe conta com esse apelido.',
+};
 
 /* ===================== pré-telas ===================== */
 const LORE = [
@@ -168,12 +181,20 @@ function erro(id, msg) {
   e.hidden = !msg;
 }
 
-function concluir() {
-  perfil = { ...rascunho };
-  gravarConta(perfil);
+async function concluir() {
+  const b = $('btn-lore');
+  b.disabled = true; b.textContent = 'CRIANDO…';
+  const r = await api.criarConta({ ...rascunho, codigo: $('in-codigo').value.trim().toUpperCase() });
+  b.disabled = false; b.textContent = 'ENTRAR NO MAPA';
+  if (!r.ok) {
+    irPara('criar');
+    erro('cri-erro', MOTIVOS[r.motivo] || r.detalhe || 'Não foi possível criar a conta.');
+    return;
+  }
+  perfil = { ...rascunho, ...r.perfil };
   salvarPerfil(perfil);
-  store.set(LORE_KEY, true);
   fecharOnboarding();
+  await atualizarMapa();
 }
 
 // navegação e escolhas
@@ -192,15 +213,17 @@ ui.onb.addEventListener('click', (e) => {
   if (b.dataset.cor) { rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); return; }
 
   if (b.id === 'btn-entrar-conta') {
-    const nome = $('ent-nome').value.trim().toUpperCase();
-    const conta = contas()[nome];
-    if (!conta) { erro('ent-erro', 'Não existe conta com esse apelido neste aparelho.'); return; }
-    if (conta.pin !== $('ent-pin').value) { erro('ent-erro', 'PIN incorreto.'); return; }
-    erro('ent-erro', '');
-    perfil = { ...conta };
-    salvarPerfil(perfil);
-    fecharOnboarding();
-    toast(`Bem-vindo de volta, ${perfil.apelido}.`);
+    b.disabled = true; b.textContent = 'ENTRANDO…';
+    api.entrar($('ent-nome').value.trim().toUpperCase(), $('ent-pin').value).then(async (r) => {
+      b.disabled = false; b.textContent = 'ENTRAR';
+      if (!r.ok) { erro('ent-erro', MOTIVOS[r.motivo] || r.detalhe || 'Não foi possível entrar.'); return; }
+      erro('ent-erro', '');
+      perfil = { ...perfilVazio(), ...r.perfil };
+      salvarPerfil(perfil);
+      fecharOnboarding();
+      toast(`Bem-vindo de volta, ${perfil.apelido}.`);
+      await atualizarMapa();
+    });
     return;
   }
 
@@ -217,17 +240,22 @@ ui.onb.addEventListener('click', (e) => {
     return;
   }
   if (b.dataset.go) {
-    if (modoEdicao) { perfil = { ...rascunho }; gravarConta(perfil); salvarPerfil(perfil); fecharOnboarding(); toast('Tênis atualizado.'); return; }
-    if (b.dataset.go === 'faccao') {
-      if (contas()[rascunho.apelido]) { erro('cri-erro', 'Esse apelido já tem conta neste aparelho.'); return; }
-      erro('cri-erro', '');
+    if (modoEdicao) {
+      perfil = { ...rascunho };
+      salvarPerfil(perfil);
+      api.salvarVisual({ modelo: perfil.modelo, cor: perfil.cor });
+      fecharOnboarding();
+      toast('Tênis atualizado.');
+      return;
     }
+    if (b.dataset.go === 'faccao') erro('cri-erro', '');
     irPara(b.dataset.go);
   }
 });
 
 function validarCriar() {
-  const ok = rascunho.apelido.length >= 2 && /^\d{4}$/.test(rascunho.pin || '');
+  const codigoOk = !api.temServidor || $('in-codigo').value.trim().length >= 4;
+  const ok = rascunho.apelido.length >= 2 && /^\d{6}$/.test(rascunho.pin || '') && codigoOk;
   document.querySelector('[data-scr=criar] [data-go]').disabled = !ok;
 }
 
@@ -235,17 +263,18 @@ $('in-nome').addEventListener('input', (e) => {
   rascunho.apelido = e.target.value.trim().toUpperCase().slice(0, 16);
   validarCriar();
 });
+$('in-codigo').addEventListener('input', validarCriar);
 $('in-pin').addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
   rascunho.pin = e.target.value;
   validarCriar();
 });
 const validarEntrar = () => {
-  $('btn-entrar-conta').disabled = !($('ent-nome').value.trim().length >= 2 && /^\d{4}$/.test($('ent-pin').value));
+  $('btn-entrar-conta').disabled = !($('ent-nome').value.trim().length >= 2 && /^\d{6}$/.test($('ent-pin').value));
 };
 $('ent-nome').addEventListener('input', validarEntrar);
 $('ent-pin').addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
   validarEntrar();
 });
 
@@ -350,15 +379,38 @@ async function initMap() {
   });
 
   map.on('load', () => {
+    // Edificações do OpenStreetMap, no chão, discretas e só de perto.
+    if (map.getLayer('building')) {
+      map.setPaintProperty('building', 'fill-color', '#16222f');
+      map.setPaintProperty('building', 'fill-outline-color', '#31506e');
+      map.setPaintProperty('building', 'fill-opacity',
+        ['interpolate', ['linear'], ['zoom'], 13.5, 0, 15.5, 0.7, 17, 0.9]);
+    }
+
+    const corEquipe = ['match', ['get', 'faccao'],
+      'meridiano', FACCOES.meridiano.cor, 'azimute', FACCOES.azimute.cor, '#8aa0b4'];
+
+    map.addSource('terr', { type: 'geojson', data: empty() });
+    map.addLayer({ id: 'terr-fill', type: 'fill', source: 'terr', paint: { 'fill-color': corEquipe, 'fill-opacity': 0.26 } });
+    map.addLayer({ id: 'terr-line', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 2, 'line-opacity': 0.9 } });
+
     map.addSource('zone', { type: 'geojson', data: empty() });
     map.addSource('route', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.14 } });
     map.addLayer({ id: 'zone-line', type: 'line', source: 'zone', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 2, 'line-dasharray': [2, 2] } });
     map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 11, 'line-opacity': 0.22, 'line-blur': 3 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 4 } });
+
+    map.on('click', 'terr-fill', (e) => {
+      const p = e.features[0].properties;
+      const donos = typeof p.donos === 'string' ? JSON.parse(p.donos) : (p.donos || []);
+      toast(`${FACCOES[p.faccao] ? FACCOES[p.faccao].nome : p.faccao} · ${Number(p.area).toLocaleString('pt-BR')} m²\n${donos.join(', ')}`, 5000);
+    });
+
     mapReady = true;
     atualizarMarcador();
     drawAll();
+    if (territorios) map.getSource('terr').setData(territorios);
   });
 
   if (SIM) map.on('click', (e) => simulate(e.lngLat));
@@ -397,6 +449,59 @@ function drawAll() {
   else if (lastFix) atualizarMarcador();
   map.setPaintProperty('zone-fill', 'fill-opacity', session.canFinish ? 0.3 : 0.14);
 }
+
+/* ===================== territórios e ranking ===================== */
+async function atualizarMapa() {
+  if (!api.temSessao()) return;
+  territorios = await api.buscarMapa();
+  if (mapReady && map.getSource('terr')) map.getSource('terr').setData(territorios);
+}
+
+function fmtArea(m2) {
+  const n = Number(m2) || 0;
+  return n >= 100000 ? `${(n / 1e6).toFixed(2)} km²` : `${Math.round(n).toLocaleString('pt-BR')} m²`;
+}
+
+async function abrirRanking() {
+  $('painel').hidden = false;
+  $('placar').innerHTML = '<p class="vazio">Carregando…</p>';
+  $('rank').innerHTML = '';
+  $('rank-nota').textContent = '';
+
+  if (!api.temSessao()) {
+    $('placar').innerHTML = '';
+    $('rank').innerHTML = '';
+    $('rank-nota').textContent = 'O ranking é do servidor, que ainda não está ligado. Enquanto isso, as rotas ficam guardadas só neste aparelho.';
+    return;
+  }
+
+  const [placar, lista] = await Promise.all([api.buscarPlacar(), api.buscarRanking()]);
+  $('placar').innerHTML = placar.map((e) => {
+    const f = FACCOES[e.faccao] || FACCOES.meridiano;
+    return `<div class="eq" style="--c:${f.cor}">
+      <b>${f.nome}</b><span class="n">${fmtArea(e.area_fisica_m2)}</span>
+      <small>${e.pontos.toLocaleString('pt-BR')} pontos competitivos · ${e.conquistas} conquistas · ${e.jogadores} jogadores</small>
+    </div>`;
+  }).join('') || '<p class="vazio">Nenhuma equipe pontuou ainda.</p>';
+
+  $('rank').innerHTML = lista.map((j, i) => {
+    const f = FACCOES[j.faccao] || FACCOES.meridiano;
+    const eu = perfil && j.apelido === perfil.apelido;
+    return `<li class="${eu ? 'eu' : ''}">
+      <span class="pos">${i + 1}</span>
+      <span class="sh">${sneakerSVG({ modelo: j.modelo, cor: (NEONS.find((n) => n.id === j.cor) || NEONS[0]).cor, faccao: j.faccao, largura: 30, brilho: 0.6 })}</span>
+      <span class="nm">${j.apelido}<i style="color:${f.cor}">${f.nome}</i></span>
+      <span class="cr">${Number(j.creditos).toLocaleString('pt-BR')}</span>
+    </li>`;
+  }).join('');
+  if (!lista.length) $('rank-nota').textContent = 'Ninguém fechou um circuito ainda. Seja o primeiro.';
+  else $('rank-nota').textContent = 'Créditos valem enquanto o território for seu. Perdeu o território, perdeu os pontos.';
+}
+
+$('campo-codigo').hidden = !api.temServidor;
+$('btn-rank').onclick = abrirRanking;
+$('painel-fechar').onclick = () => { $('painel').hidden = true; };
+$('painel').addEventListener('click', (e) => { if (e.target.id === 'painel') $('painel').hidden = true; });
 
 /* ===================== GPS ===================== */
 let firstFix = true;
@@ -462,17 +567,30 @@ ui.start.onclick = () => {
 ui.finish.onclick = async () => {
   if (!session.canFinish) return;
   const payload = session.finish(SIM ? simT : Date.now());
-  const pending = store.get(PENDING_KEY) || [];
-  pending.push(payload);
-  store.set(PENDING_KEY, pending);
   save();
   releaseScreen();
   render();
   drawAll();
+
+  const resumo = `Percurso: ${fmtDist(payload.distanceM)} em ${fmtTime(payload.finishedAt - payload.startedAt)}.`;
+  toast('Enviando a rota para o servidor…', 2500);
+  const r = await api.enviarRota(payload);
+
+  if (r && r.ok) {
+    const tomadas = (r.tomadas || []).map((t) => `${t.apelido} (${Number(t.area).toLocaleString('pt-BR')} m²)`);
+    await ask({
+      title: 'Território conquistado',
+      text: `${resumo}\n\nÁrea tomada: ${fmtArea(r.area_terreno)}\nCréditos: ${Number(r.creditos).toLocaleString('pt-BR')}`
+        + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
+      ok: 'VOLTAR AO MAPA',
+    });
+    await atualizarMapa();
+    return;
+  }
+
   await ask({
-    title: 'Rota registrada neste aparelho',
-    text: `Percurso: ${fmtDist(payload.distanceM)} em ${fmtTime(payload.finishedAt - payload.startedAt)}.\n\n`
-      + 'A validação e a pontuação são feitas pelo servidor, que ainda não existe nesta versão. Nenhum território foi conquistado.',
+    title: r && r.motivo === 'sem_servidor' ? 'Rota registrada neste aparelho' : 'Rota não validada',
+    text: `${resumo}\n\n${(r && MOTIVOS[r.motivo]) || (r && r.detalhe) || 'O servidor não aceitou esta rota.'}`,
     ok: 'VOLTAR AO MAPA',
   });
 };
@@ -528,7 +646,15 @@ setInterval(() => {
 
 /* ===================== início ===================== */
 aplicarCores(perfil);
-if (perfil) pintarHud(); else abrirOnboarding();
+if (!api.temServidor) banner('Servidor ainda não ligado: sua conta e suas rotas ficam só neste aparelho.');
+if (perfil && (!api.temServidor || api.temSessao())) {
+  pintarHud();
+  atualizarMapa();
+  api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
+  setInterval(atualizarMapa, 45000);
+} else {
+  abrirOnboarding();
+}
 
 if (session.state !== 'idle') {
   toast('Rota em andamento recuperada.');

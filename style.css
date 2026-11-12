@@ -305,3 +305,47 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .lore-dots { display: flex; justify-content: center; gap: 7px; padding-bottom: 6px; }
 .lore-dots span { width: 22px; height: 3px; background: var(--line); }
 .lore-dots span.on { background: var(--neon); box-shadow: 0 0 12px var(--neon); }
+
+/* ===================== ranking ===================== */
+#btn-rank {
+  position: fixed; z-index: 3; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 246px);
+  width: 48px; height: 48px; display: flex; align-items: flex-end; justify-content: center; gap: 4px;
+  padding: 0 0 14px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+#btn-rank span { width: 4px; background: var(--neon); box-shadow: 0 0 10px var(--neon); }
+#btn-rank span:nth-child(1) { height: 10px; }
+#btn-rank span:nth-child(2) { height: 18px; }
+#btn-rank span:nth-child(3) { height: 14px; }
+
+#painel { position: fixed; inset: 0; z-index: 25; background: rgba(3,5,8,.72); display: flex; align-items: flex-end; }
+.painel-card {
+  width: 100%; max-height: 86vh; overflow-y: auto; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px);
+  background: var(--panel-solida); border-top: 2px solid var(--neon);
+  animation: sobe .22s ease both;
+}
+@keyframes sobe { from { transform: translateY(26px); opacity: 0; } }
+.painel-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.painel-top h2 { margin: 0; font-size: 18px; letter-spacing: .08em; }
+.painel-top button { background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px 8px; }
+
+.placar { display: grid; gap: 8px; margin-bottom: 20px; }
+.eq {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline;
+  padding: 12px 14px; background: #0d1620; border-left: 3px solid var(--c);
+}
+.eq b { font-family: Orbitron, sans-serif; font-size: 14px; letter-spacing: .1em; color: var(--c); }
+.eq .n { font-family: Orbitron, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; }
+.eq small { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
+
+.rank { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.rank li { display: grid; grid-template-columns: 26px 30px 1fr auto; gap: 10px; align-items: center; padding: 9px 10px; background: #0b131c; }
+.rank li.eu { background: color-mix(in srgb, var(--neon) 13%, #0b131c); outline: 1px solid var(--neon); }
+.rank .pos { font-family: Orbitron, sans-serif; font-size: 12px; color: var(--muted); text-align: right; }
+.rank .sh { line-height: 0; }
+.rank .sh svg { width: 100%; height: auto; }
+.rank .nm { font-size: 14px; font-weight: 600; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank .nm i { font-style: normal; font-size: 10px; letter-spacing: .14em; display: block; }
+.rank .cr { font-family: Orbitron, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }
+.vazio { padding: 22px 0; text-align: center; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
