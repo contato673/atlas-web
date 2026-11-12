@@ -51,21 +51,63 @@
     <section class="scr" data-scr="intro">
       <div class="scr-mid">
         <div class="logo">
-          <span class="logo-mark"></span>
+          <span class="logo-mark" id="logo-mark"></span>
           <h1>ATLAS</h1>
           <p class="logo-sub">CONQUISTA TERRITORIAL</p>
         </div>
         <p class="lead">A cidade é o tabuleiro. Percorra um circuito a pé e feche território para a sua equipe.</p>
       </div>
-      <div class="scr-foot">
-        <button class="btn primary" data-go="faccao">COMEÇAR</button>
-        <p class="nota">Protótipo. Sem servidor: nada é validado nem pontuado ainda.</p>
+      <div class="scr-foot col">
+        <button class="btn primary" data-go="criar">CRIAR CONTA</button>
+        <button class="btn ghost" data-go="entrar">JÁ TENHO CONTA</button>
+        <p class="nota">Protótipo. A conta vive só neste aparelho enquanto o servidor não existe.</p>
       </div>
     </section>
 
-    <!-- 2. Facção -->
+    <!-- 2a. Entrar -->
+    <section class="scr" data-scr="entrar" hidden>
+      <div class="scr-head"><span class="passo">Acesso</span><h2>Entrar</h2></div>
+      <div class="scr-mid">
+        <label class="campo">
+          <span>Apelido</span>
+          <input id="ent-nome" type="text" maxlength="16" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="SEU APELIDO">
+        </label>
+        <label class="campo">
+          <span>PIN de 4 dígitos</span>
+          <input id="ent-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="••••">
+        </label>
+        <p class="erro" id="ent-erro" hidden></p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="intro">VOLTAR</button>
+        <button class="btn primary" id="btn-entrar-conta" disabled>ENTRAR</button>
+      </div>
+    </section>
+
+    <!-- 2b. Criar conta -->
+    <section class="scr" data-scr="criar" hidden>
+      <div class="scr-head"><span class="passo">Acesso</span><h2>Criar sua conta</h2></div>
+      <div class="scr-mid">
+        <label class="campo">
+          <span>Apelido no jogo</span>
+          <input id="in-nome" type="text" maxlength="16" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="ex.: NOITE">
+        </label>
+        <label class="campo">
+          <span>Crie um PIN de 4 dígitos</span>
+          <input id="in-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="••••">
+        </label>
+        <p class="erro" id="cri-erro" hidden></p>
+        <p class="nota">O apelido aparece como proprietário dos territórios que você conquistar. Use um apelido, não seu nome completo.</p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="intro">VOLTAR</button>
+        <button class="btn primary" data-go="faccao" disabled>CONTINUAR</button>
+      </div>
+    </section>
+
+    <!-- 3. Facção -->
     <section class="scr" data-scr="faccao" hidden>
-      <div class="scr-head"><span class="passo">Passo 1 de 4</span><h2>Escolha sua facção</h2></div>
+      <div class="scr-head"><span class="passo">Passo 1 de 3</span><h2>Escolha sua facção</h2></div>
       <div class="scr-mid">
         <div class="facs">
           <button class="fac" data-fac="azul">
@@ -80,31 +122,14 @@
         <p class="nota">A facção define a cor do seu território no mapa. Não dá vantagem de regra.</p>
       </div>
       <div class="scr-foot">
-        <button class="btn ghost" data-back="intro">VOLTAR</button>
-        <button class="btn primary" data-go="nome" disabled>CONTINUAR</button>
-      </div>
-    </section>
-
-    <!-- 3. Apelido -->
-    <section class="scr" data-scr="nome" hidden>
-      <div class="scr-head"><span class="passo">Passo 2 de 4</span><h2>Como quer ser chamado?</h2></div>
-      <div class="scr-mid">
-        <label class="campo">
-          <span>Apelido no jogo</span>
-          <input id="in-nome" type="text" maxlength="16" autocomplete="off" autocapitalize="characters"
-                 spellcheck="false" placeholder="ex.: NOITE">
-        </label>
-        <p class="nota">Aparece como proprietário dos territórios que você conquistar. Use um apelido, não seu nome completo.</p>
-      </div>
-      <div class="scr-foot">
-        <button class="btn ghost" data-back="faccao">VOLTAR</button>
+        <button class="btn ghost" data-back="criar">VOLTAR</button>
         <button class="btn primary" data-go="tenis" disabled>CONTINUAR</button>
       </div>
     </section>
 
     <!-- 4. Tênis -->
     <section class="scr" data-scr="tenis" hidden>
-      <div class="scr-head"><span class="passo" id="passo-tenis">Passo 3 de 4</span><h2>Monte seu tênis</h2></div>
+      <div class="scr-head"><span class="passo" id="passo-tenis">Passo 2 de 3</span><h2>Monte seu tênis</h2></div>
       <div class="scr-mid">
         <div class="palco"><div class="palco-piso"></div><div id="preview"></div></div>
         <div class="opt">
@@ -117,14 +142,14 @@
         </div>
       </div>
       <div class="scr-foot">
-        <button class="btn ghost" data-back="nome">VOLTAR</button>
+        <button class="btn ghost" data-back="faccao">VOLTAR</button>
         <button class="btn primary" data-go="pronto">CONTINUAR</button>
       </div>
     </section>
 
     <!-- 5. Pronto -->
     <section class="scr" data-scr="pronto" hidden>
-      <div class="scr-head"><span class="passo">Passo 4 de 4</span><h2>Tudo pronto</h2></div>
+      <div class="scr-head"><span class="passo">Passo 3 de 3</span><h2>Tudo pronto</h2></div>
       <div class="scr-mid">
         <div class="cartao">
           <div class="cartao-shoe" id="resumo-shoe"></div>
@@ -138,7 +163,24 @@
       </div>
       <div class="scr-foot">
         <button class="btn ghost" data-back="tenis">VOLTAR</button>
-        <button class="btn primary" id="btn-entrar">ENTRAR NO MAPA</button>
+        <button class="btn primary" id="btn-briefing">VER O BRIEFING</button>
+      </div>
+    </section>
+
+    <!-- 6. Lore -->
+    <section class="scr lore" data-scr="lore" hidden>
+      <div class="scr-head">
+        <span class="passo">Briefing</span>
+        <h2 id="lore-tit">O Levantamento</h2>
+      </div>
+      <div class="scr-mid">
+        <div class="lore-mark" id="lore-mark"></div>
+        <p class="lore-txt" id="lore-txt"></p>
+      </div>
+      <div class="scr-foot col">
+        <div class="lore-dots" id="lore-dots"></div>
+        <button class="btn primary" id="btn-lore">CONTINUAR</button>
+        <button class="btn ghost" id="btn-pular">PULAR</button>
       </div>
     </section>
   </div>

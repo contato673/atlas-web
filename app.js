@@ -3,6 +3,7 @@
 import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
+  logoSVG,
 } from './player.js';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
@@ -50,9 +51,42 @@ function pintarHud() {
   ui.hudFac.textContent = FACCOES[perfil.faccao].nome;
 }
 
+/* ===================== contas (por enquanto, só neste aparelho) ===================== */
+const CONTAS_KEY = 'atlas.contas.v1';
+const LORE_KEY = 'atlas.lore.v1';
+const contas = () => store.get(CONTAS_KEY) || {};
+function gravarConta(p) {
+  const c = contas();
+  c[p.apelido] = { ...p };
+  store.set(CONTAS_KEY, c);
+}
+
 /* ===================== pré-telas ===================== */
+const LORE = [
+  {
+    titulo: 'O Levantamento',
+    texto: 'Quando as cidades deixaram de ser medidas por quem as caminhava, elas começaram a esquecer o próprio desenho. '
+      + 'Ruas viraram linhas em um servidor. Praças viraram polígonos sem dono.\n\n'
+      + 'O projeto ATLAS nasceu para refazer esse mapa do único jeito que ninguém consegue falsificar: passo a passo.',
+  },
+  {
+    titulo: 'A Cisão',
+    texto: 'A equipe do levantamento se dividiu sobre o que fazer com o mapa pronto.\n\n'
+      + 'A AZUL defende que o mapa pertence a quem o mantém: avanço calculado, território que se segura.\n\n'
+      + 'A VERMELHA responde que o mapa pertence a quem o percorre: pressão constante, território que se toma.\n\n'
+      + 'Nenhum dos dois lados venceu. Por isso a cidade continua em disputa.',
+  },
+  {
+    titulo: 'A Regra',
+    texto: 'Um território só muda de lado quando alguém o cerca por inteiro, com as próprias pernas. '
+      + 'Não existe atalho e não existe conquista pela metade.\n\n'
+      + 'O que você fechar com um circuito válido passa a levar o seu nome — até que alguém caminhe mais do que você.',
+  },
+];
+
 let rascunho = perfilVazio();
 let modoEdicao = false;
+let lorePag = 0;
 
 function telaAtual() { return document.querySelector('.scr:not([hidden])'); }
 
@@ -62,7 +96,9 @@ function irPara(nome) {
   if (t) t.scrollTop = 0;
   if (nome === 'tenis') desenharPreview();
   if (nome === 'pronto') desenharResumo();
-  if (nome === 'nome') setTimeout(() => $('in-nome').focus(), 180);
+  if (nome === 'lore') { lorePag = 0; desenharLore(); }
+  if (nome === 'criar') setTimeout(() => $('in-nome').focus(), 180);
+  if (nome === 'entrar') setTimeout(() => $('ent-nome').focus(), 180);
 }
 
 function abrirOnboarding({ edicao = false } = {}) {
@@ -70,10 +106,10 @@ function abrirOnboarding({ edicao = false } = {}) {
   rascunho = edicao ? { ...perfil } : perfilVazio();
   aplicarCores(rascunho);
   montarOpcoes();
-  $('passo-tenis').textContent = edicao ? 'Perfil' : 'Passo 3 de 4';
-  // Em edição, mostra só a tela do tênis, com salvar/cancelar.
+  $('passo-tenis').textContent = edicao ? 'Perfil' : 'Passo 2 de 3';
   document.querySelector('[data-scr=tenis] [data-back]').textContent = edicao ? 'CANCELAR' : 'VOLTAR';
   document.querySelector('[data-scr=tenis] [data-go]').textContent = edicao ? 'SALVAR' : 'CONTINUAR';
+  $('logo-mark').innerHTML = logoSVG({ largura: 112, cor: corDoPerfil(rascunho), faccao: rascunho.faccao });
   ui.onb.hidden = false;
   irPara(edicao ? 'tenis' : 'intro');
 }
@@ -87,10 +123,10 @@ function fecharOnboarding() {
 }
 
 function montarOpcoes() {
-  const rm = $('row-modelo');
-  rm.innerHTML = MODELOS.map((m) => `<button type="button" data-modelo="${m.id}"><b>${m.nome}</b><i>${m.desc}</i></button>`).join('');
-  const rc = $('row-cor');
-  rc.innerHTML = NEONS.map((c) => `<button type="button" data-cor="${c.id}" title="${c.nome}" aria-label="${c.nome}"><span style="background:${c.cor};box-shadow:0 0 16px ${c.cor}"></span></button>`).join('');
+  $('row-modelo').innerHTML = MODELOS
+    .map((m) => `<button type="button" data-modelo="${m.id}"><b>${m.nome}</b><i>${m.desc}</i></button>`).join('');
+  $('row-cor').innerHTML = NEONS
+    .map((c) => `<button type="button" data-cor="${c.id}" title="${c.nome}" aria-label="${c.nome}"><span style="background:${c.cor};box-shadow:0 0 16px ${c.cor}"></span></button>`).join('');
   marcarEscolhas();
 }
 
@@ -113,6 +149,30 @@ function desenharResumo() {
   $('resumo-ten').textContent = `${m.nome} · ${c.nome}`;
 }
 
+function desenharLore() {
+  const pag = LORE[lorePag];
+  $('lore-tit').textContent = pag.titulo;
+  $('lore-txt').textContent = pag.texto;
+  $('lore-mark').innerHTML = logoSVG({ largura: 92, cor: corDoPerfil(rascunho), faccao: rascunho.faccao, brilho: 3 });
+  $('lore-dots').innerHTML = LORE.map((_, i) => `<span${i === lorePag ? ' class="on"' : ''}></span>`).join('');
+  $('btn-lore').textContent = lorePag === LORE.length - 1 ? 'ENTRAR NO MAPA' : 'CONTINUAR';
+  $('btn-pular').hidden = lorePag === LORE.length - 1;
+}
+
+function erro(id, msg) {
+  const e = $(id);
+  e.textContent = msg || '';
+  e.hidden = !msg;
+}
+
+function concluir() {
+  perfil = { ...rascunho };
+  gravarConta(perfil);
+  salvarPerfil(perfil);
+  store.set(LORE_KEY, true);
+  fecharOnboarding();
+}
+
 // navegação e escolhas
 ui.onb.addEventListener('click', (e) => {
   const b = e.target.closest('button');
@@ -128,26 +188,62 @@ ui.onb.addEventListener('click', (e) => {
   if (b.dataset.modelo) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return; }
   if (b.dataset.cor) { rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); return; }
 
+  if (b.id === 'btn-entrar-conta') {
+    const nome = $('ent-nome').value.trim().toUpperCase();
+    const conta = contas()[nome];
+    if (!conta) { erro('ent-erro', 'Não existe conta com esse apelido neste aparelho.'); return; }
+    if (conta.pin !== $('ent-pin').value) { erro('ent-erro', 'PIN incorreto.'); return; }
+    erro('ent-erro', '');
+    perfil = { ...conta };
+    salvarPerfil(perfil);
+    fecharOnboarding();
+    toast(`Bem-vindo de volta, ${perfil.apelido}.`);
+    return;
+  }
+
+  if (b.id === 'btn-briefing') { irPara('lore'); return; }
+  if (b.id === 'btn-pular') { concluir(); return; }
+  if (b.id === 'btn-lore') {
+    if (lorePag < LORE.length - 1) { lorePag++; desenharLore(); } else concluir();
+    return;
+  }
+
   if (b.dataset.back) {
     if (modoEdicao) { fecharOnboarding(); return; }
     irPara(b.dataset.back);
     return;
   }
   if (b.dataset.go) {
-    if (modoEdicao) { perfil = { ...rascunho }; salvarPerfil(perfil); fecharOnboarding(); toast('Tênis atualizado.'); return; }
+    if (modoEdicao) { perfil = { ...rascunho }; gravarConta(perfil); salvarPerfil(perfil); fecharOnboarding(); toast('Tênis atualizado.'); return; }
+    if (b.dataset.go === 'faccao') {
+      if (contas()[rascunho.apelido]) { erro('cri-erro', 'Esse apelido já tem conta neste aparelho.'); return; }
+      erro('cri-erro', '');
+    }
     irPara(b.dataset.go);
-    return;
-  }
-  if (b.id === 'btn-entrar') {
-    perfil = { ...rascunho };
-    salvarPerfil(perfil);
-    fecharOnboarding();
   }
 });
 
+function validarCriar() {
+  const ok = rascunho.apelido.length >= 2 && /^\d{4}$/.test(rascunho.pin || '');
+  document.querySelector('[data-scr=criar] [data-go]').disabled = !ok;
+}
+
 $('in-nome').addEventListener('input', (e) => {
   rascunho.apelido = e.target.value.trim().toUpperCase().slice(0, 16);
-  document.querySelector('[data-scr=nome] [data-go]').disabled = rascunho.apelido.length < 2;
+  validarCriar();
+});
+$('in-pin').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  rascunho.pin = e.target.value;
+  validarCriar();
+});
+const validarEntrar = () => {
+  $('btn-entrar-conta').disabled = !($('ent-nome').value.trim().length >= 2 && /^\d{4}$/.test($('ent-pin').value));
+};
+$('ent-nome').addEventListener('input', validarEntrar);
+$('ent-pin').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+  validarEntrar();
 });
 
 ui.perfil.onclick = () => abrirOnboarding({ edicao: true });

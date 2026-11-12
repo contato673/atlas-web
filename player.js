@@ -107,9 +107,42 @@ export function carregarPerfil() {
 }
 
 export function salvarPerfil(p) {
-  try { localStorage.setItem(PLAYER_KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
+  const { pin, ...semSegredo } = p; // o PIN fica só na lista de contas
+  try { localStorage.setItem(PLAYER_KEY, JSON.stringify(semSegredo)); } catch { /* sem armazenamento */ }
 }
 
 export function perfilVazio() {
   return { ...vazio };
+}
+
+/**
+ * Marca do ATLAS: o titã que sustenta o mundo e o atlas que mapeia a cidade.
+ * Cúpula (o mundo) apoiada sobre um "A" atlético, dentro de moldura hexagonal.
+ */
+export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilho = 2.6 } = {}) {
+  const corFac = (FACCOES[faccao] || FACCOES.azul).cor;
+  const n = `l${++uid}`;
+  return `<svg viewBox="0 0 120 124" width="${largura}" height="${(largura * 124) / 120}" aria-hidden="true">
+  <defs>
+    <linearGradient id="g${n}" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="${cor}"/><stop offset="1" stop-color="${corFac}"/>
+    </linearGradient>
+    <filter id="f${n}" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="${brilho}" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#f${n})" fill="none" stroke="url(#g${n})" stroke-linecap="round">
+    <path d="M60,6 L107,33 L107,87 L60,114 L13,87 L13,33 Z" stroke-width="1.6" opacity=".38"/>
+    <path d="M60,6 L72,13 M107,33 L107,46 M107,87 L95,94 M60,114 L48,107 M13,87 L13,74 M13,33 L25,26"
+          stroke-width="3" opacity=".9"/>
+    <path d="M27,50 A33,33 0 0 1 93,50" stroke-width="3.4"/>
+    <path d="M40,50 A20,33 0 0 1 80,50" stroke-width="1.4" opacity=".5"/>
+    <path d="M33,38 H87" stroke-width="1.4" opacity=".45"/>
+    <path d="M38,99 L60,55 L82,99" stroke-width="7.5" stroke-linejoin="round"/>
+    <path d="M48,84 H72" stroke-width="6"/>
+    <path d="M16,62 H25 M18,70 H29 M20,78 H27" stroke-width="2.4" opacity=".55"/>
+    <path d="M104,62 H95 M102,70 H91 M100,78 H93" stroke-width="2.4" opacity=".55"/>
+  </g>
+</svg>`;
 }
