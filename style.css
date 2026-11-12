@@ -275,7 +275,8 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
 }
 
-.maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { bottom: calc(env(safe-area-inset-bottom) + 240px); }
+.maplibregl-ctrl-bottom-left { bottom: calc(env(safe-area-inset-bottom) + 240px); }
+.maplibregl-ctrl-bottom-right { bottom: calc(env(safe-area-inset-bottom) + 240px); right: 68px; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
