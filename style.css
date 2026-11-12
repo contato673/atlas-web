@@ -350,3 +350,23 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .rank .nm i { font-style: normal; font-size: 10px; letter-spacing: .14em; display: block; }
 .rank .cr { font-family: Orbitron, sans-serif; font-size: 13px; font-variant-numeric: tabular-nums; }
 .vazio { padding: 22px 0; text-align: center; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+/* ===================== centralizar e conquista ===================== */
+#btn-centro {
+  position: fixed; z-index: 3; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 302px);
+  width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--neon);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.num-destaque {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 18px;
+}
+.num-destaque div {
+  padding: 12px 14px; background: #0c1620; border-left: 3px solid var(--neon);
+}
+.num-destaque b {
+  display: block; font-family: Orbitron, sans-serif; font-size: 19px; font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px color-mix(in srgb, var(--neon) 60%, transparent);
+}
+.num-destaque span { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); font-weight: 600; }

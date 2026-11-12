@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=8';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=9';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=8';
-import * as api from './api.js?v=8';
+} from './player.js?v=9';
+import * as api from './api.js?v=9';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -290,6 +290,24 @@ const fmtTime = (ms) => {
   return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 };
 
+let audioCtx = null;
+function aviso() {
+  try { if (navigator.vibrate) navigator.vibrate([120, 70, 120]); } catch { /* sem vibração */ }
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const agora = audioCtx.currentTime;
+    [880, 1320].forEach((hz, i) => {
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = hz;
+      g.gain.setValueAtTime(0.0001, agora + i * 0.18);
+      g.gain.exponentialRampToValueAtTime(0.18, agora + i * 0.18 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, agora + i * 0.18 + 0.16);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(agora + i * 0.18); o.stop(agora + i * 0.18 + 0.2);
+    });
+  } catch { /* sem áudio */ }
+}
+
 let toastTimer = null;
 function toast(msg, ms = 3500) {
   ui.toast.textContent = msg;
@@ -303,10 +321,13 @@ function banner(msg) {
   ui.banner.hidden = !msg;
 }
 
-function ask({ title, text, ok, cancel, danger }) {
+function ask({ title, text, ok, cancel, danger, numeros }) {
   return new Promise((resolve) => {
     ui.mTitle.textContent = title;
     ui.mText.textContent = text;
+    const bloco = $('m-num');
+    bloco.hidden = !numeros;
+    if (numeros) bloco.innerHTML = numeros.map((n) => `<div><b>${n[0]}</b><span>${n[1]}</span></div>`).join('');
     ui.mOk.textContent = ok;
     ui.mOk.className = `btn ${danger ? 'danger' : 'primary'}`;
     ui.mCancel.textContent = cancel || '';
@@ -372,7 +393,7 @@ async function initMap() {
     attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false,
   });
   map.touchZoomRotate.disableRotation();
-  map.on('dragstart', () => { followMe = false; });
+  map.on('dragstart', () => { followMe = false; $('btn-centro').hidden = false; });
   map.on('error', (e) => {
     const msg = String((e && e.error && e.error.message) || '');
     if (msg) banner(`Problema no mapa: ${msg}`);
@@ -392,7 +413,19 @@ async function initMap() {
 
     map.addSource('terr', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'terr-fill', type: 'fill', source: 'terr', paint: { 'fill-color': corEquipe, 'fill-opacity': 0.26 } });
+    map.addLayer({ id: 'terr-brilho', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 10, 'line-opacity': 0.18, 'line-blur': 5 } });
     map.addLayer({ id: 'terr-line', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 2, 'line-opacity': 0.9 } });
+    map.addLayer({ id: 'terr-nome', type: 'symbol', source: 'terr', minzoom: 13,
+      layout: { 'text-field': ['get', 'rotulo'], 'text-size': 11, 'text-letter-spacing': 0.12,
+                'text-font': ['Noto Sans Regular'], 'text-max-width': 9, 'text-allow-overlap': false },
+      paint: { 'text-color': '#e9f3fb', 'text-halo-color': '#05080c', 'text-halo-width': 1.6 } });
+
+    map.addSource('acc', { type: 'geojson', data: empty() });
+    map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.07 } });
+    map.addLayer({ id: 'acc-line', type: 'line', source: 'acc', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 1, 'line-opacity': 0.35 } });
+
+    map.addSource('rumo', { type: 'geojson', data: empty() });
+    map.addLayer({ id: 'rumo-line', type: 'line', source: 'rumo', paint: { 'line-color': '#ffffff', 'line-width': 1.4, 'line-opacity': 0.4, 'line-dasharray': [1, 2] } });
 
     map.addSource('zone', { type: 'geojson', data: empty() });
     map.addSource('route', { type: 'geojson', data: empty() });
@@ -424,6 +457,8 @@ function atualizarMarcador() {
     map.setPaintProperty('route-glow', 'line-color', cor);
     map.setPaintProperty('zone-fill', 'fill-color', cor);
     map.setPaintProperty('zone-line', 'line-color', cor);
+    map.setPaintProperty('acc-fill', 'fill-color', cor);
+    map.setPaintProperty('acc-line', 'line-color', cor);
   }
   if (!lastFix) { if (marker) { marker.remove(); marker = null; } return; }
 
@@ -442,6 +477,10 @@ function atualizarMarcador() {
 function drawAll() {
   if (!mapReady) return;
   map.getSource('zone').setData(session.origin ? circlePolygon(session.origin, CONFIG.FINISH_RADIUS_M) : empty());
+  map.getSource('acc').setData(lastFix && lastFix.acc > 8 ? circlePolygon(lastFix, lastFix.acc) : empty());
+  map.getSource('rumo').setData(session.origin && lastFix && session.leftZone && !session.canFinish
+    ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[lastFix.lng, lastFix.lat], [session.origin.lng, session.origin.lat]] } }
+    : empty());
   map.getSource('route').setData(session.points.length > 1
     ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: session.points.map((p) => [p.lng, p.lat]) } }
     : empty());
@@ -454,6 +493,10 @@ function drawAll() {
 async function atualizarMapa() {
   if (!api.temSessao()) return;
   territorios = await api.buscarMapa();
+  for (const f of (territorios.features || [])) {
+    const d = f.properties.donos || [];
+    f.properties.rotulo = Array.isArray(d) ? d.join(' · ') : String(d);
+  }
   if (mapReady && map.getSource('terr')) map.getSource('terr').setData(territorios);
 }
 
@@ -499,6 +542,11 @@ async function abrirRanking() {
 }
 
 $('campo-codigo').hidden = !api.temServidor;
+$('btn-centro').onclick = () => {
+  followMe = true;
+  $('btn-centro').hidden = true;
+  if (mapReady && lastFix) map.easeTo({ center: [lastFix.lng, lastFix.lat], zoom: Math.max(map.getZoom(), 16.5), duration: 700 });
+};
 $('btn-rank').onclick = abrirRanking;
 $('painel-fechar').onclick = () => { $('painel').hidden = true; };
 $('painel').addEventListener('click', (e) => { if (e.target.id === 'painel') $('painel').hidden = true; });
@@ -516,7 +564,7 @@ function onFix(p) {
     const r = session.addPoint(p);
     if (r.accepted) {
       save();
-      if (r.justReturned) toast('Você voltou ao ponto inicial. Toque em FINALIZAR ROTA para encerrar.', 6000);
+      if (r.justReturned) { aviso(); toast('Você voltou ao ponto inicial. Toque em FINALIZAR ROTA para encerrar.', 6000); }
     }
   }
   render();
@@ -578,10 +626,11 @@ ui.finish.onclick = async () => {
 
   if (r && r.ok) {
     const tomadas = (r.tomadas || []).map((t) => `${t.apelido} (${Number(t.area).toLocaleString('pt-BR')} m²)`);
+    aviso();
     await ask({
       title: 'Território conquistado',
-      text: `${resumo}\n\nÁrea tomada: ${fmtArea(r.area_terreno)}\nCréditos: ${Number(r.creditos).toLocaleString('pt-BR')}`
-        + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
+      numeros: [[fmtArea(r.area_terreno), 'área tomada'], [Number(r.creditos).toLocaleString('pt-BR'), 'créditos']],
+      text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
       ok: 'VOLTAR AO MAPA',
     });
     await atualizarMapa();

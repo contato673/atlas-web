@@ -7,11 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>ATLAS — Conquista Territorial</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icone-180.png">
+  <link rel="icon" href="icone-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -35,6 +38,11 @@
     <div><b id="st-home">—</b><span>até o início</span></div>
   </section>
 
+  <button id="btn-centro" type="button" title="Centralizar em mim" hidden>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    </svg>
+  </button>
   <button id="btn-rank" type="button" title="Ranking">
     <span></span><span></span><span></span>
   </button>
@@ -212,6 +220,7 @@
     <div class="card">
       <h2 id="m-title"></h2>
       <p id="m-text"></p>
+      <div class="num-destaque" id="m-num" hidden></div>
       <div class="row">
         <button id="m-cancel" class="btn ghost"></button>
         <button id="m-ok" class="btn primary"></button>
@@ -222,6 +231,6 @@
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=8"></script>
+  <script type="module" src="app.js?v=9"></script>
 </body>
 </html>
