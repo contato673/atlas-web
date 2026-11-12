@@ -14,6 +14,10 @@ export const CONFIG = {
   // do que o próprio erro da leitura: é isso que tira o zigue-zague do traçado.
   JITTER_FACTOR: 0.7,
   ACC_AVISO_M: 22, // acima disto, avisa que o sinal está ruim
+  // Espelham os valores do servidor (atlas_config). Aqui servem só para avisar
+  // o jogador antes; quem decide de verdade continua sendo o servidor.
+  MIN_ROUTE_M: 150,
+  MIN_AREA_M2: 500,
 };
 
 const R = 6371008.8; // raio médio da Terra em metros

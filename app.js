@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=14';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=15';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=14';
-import * as api from './api.js?v=14';
+} from './player.js?v=15';
+import * as api from './api.js?v=15';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -767,7 +767,12 @@ function render() {
   ui.dist.textContent = fmtDist(session.distanceM);
   ui.home.textContent = fmtDist(session.lastDistToOrigin);
   const lockNote = wakeLock ? '' : ' Mantenha a tela ligada: com ela apagada o registro pausa.';
-  if (st === 'ready') ui.hint.textContent = 'Você está no ponto inicial. Toque em FINALIZAR ROTA para encerrar.';
+  if (st === 'ready') {
+    const curta = session.distanceM < CONFIG.MIN_ROUTE_M;
+    ui.hint.textContent = curta
+      ? `Você está no ponto inicial, mas o percurso tem ${Math.round(session.distanceM)} m e o mínimo é ${CONFIG.MIN_ROUTE_M} m. Dê mais uma volta antes de finalizar.`
+      : 'Você está no ponto inicial. Toque em FINALIZAR ROTA para encerrar.';
+  }
   else if (!session.leftZone) {
     const falta = Math.max(0, Math.ceil(CONFIG.LEAVE_RADIUS_M - session.maxDistToOrigin));
     const chegou = Math.round(session.maxDistToOrigin);
