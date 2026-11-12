@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=9';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=10';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=9';
-import * as api from './api.js?v=9';
+} from './player.js?v=10';
+import * as api from './api.js?v=10';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -63,9 +63,10 @@ const MOTIVOS = {
   area_pequena: 'A área fechada ficou pequena demais.',
   circuito_invalido: 'O traçado não formou uma área fechada válida.',
   so_area_protegida: 'Todo o circuito caiu sobre território inimigo protegido. Nada foi conquistado.',
-  sem_perfil: 'Sua conta não foi encontrada no servidor.',
+  sem_perfil: 'Essa conta existe, mas ficou sem perfil. Use CRIAR CONTA com o mesmo apelido e PIN para terminar o cadastro.',
   sem_servidor: 'O servidor ainda não está ligado: a rota ficou guardada neste aparelho.',
-  rede: 'Não deu para falar com o servidor. A rota ficou guardada e será reenviada.',
+  rede: 'Não deu para falar com o servidor. Confira a internet e tente de novo.',
+  rede_rota: 'Não deu para falar com o servidor. A rota ficou guardada e será reenviada sozinha.',
   apelido_em_uso: 'Esse apelido já está em uso.',
   convite_invalido: 'Código de convite inválido ou já usado.',
   sem_vagas: 'As vagas do teste fechado acabaram.',
@@ -125,6 +126,7 @@ function abrirOnboarding({ edicao = false } = {}) {
   $('passo-tenis').textContent = edicao ? 'Perfil' : 'Passo 2 de 3';
   document.querySelector('[data-scr=tenis] [data-back]').textContent = edicao ? 'CANCELAR' : 'VOLTAR';
   document.querySelector('[data-scr=tenis] [data-go]').textContent = edicao ? 'SALVAR' : 'CONTINUAR';
+  $('btn-sair').hidden = !edicao;
   $('logo-mark').innerHTML = logoSVG({ largura: 112, cor: corDoPerfil(rascunho), faccao: rascunho.faccao });
   ui.onb.hidden = false;
   irPara(edicao ? 'tenis' : 'intro');
@@ -542,6 +544,19 @@ async function abrirRanking() {
 }
 
 $('campo-codigo').hidden = !api.temServidor;
+$('btn-sair').onclick = async () => {
+  const sure = await ask({
+    title: 'Sair da conta?',
+    text: 'Você vai precisar do apelido e do PIN para entrar de novo. Uma rota em andamento é descartada.',
+    ok: 'SAIR', cancel: 'FICAR', danger: true,
+  });
+  if (!sure) return;
+  session.abandon(); save();
+  api.sair();
+  try { localStorage.removeItem('atlas.player.v1'); } catch { /* sem armazenamento */ }
+  location.reload();
+};
+
 $('btn-centro').onclick = () => {
   followMe = true;
   $('btn-centro').hidden = true;
@@ -624,6 +639,12 @@ ui.finish.onclick = async () => {
   toast('Enviando a rota para o servidor…', 2500);
   const r = await api.enviarRota(payload);
 
+  if (r && r.ok && r.repetida) {
+    await ask({ title: 'Rota já registrada', text: `${resumo}\n\nEsta rota já tinha sido validada pelo servidor; não contou duas vezes.`, ok: 'VOLTAR AO MAPA' });
+    await atualizarMapa();
+    return;
+  }
+
   if (r && r.ok) {
     const tomadas = (r.tomadas || []).map((t) => `${t.apelido} (${Number(t.area).toLocaleString('pt-BR')} m²)`);
     aviso();
@@ -639,7 +660,7 @@ ui.finish.onclick = async () => {
 
   await ask({
     title: r && r.motivo === 'sem_servidor' ? 'Rota registrada neste aparelho' : 'Rota não validada',
-    text: `${resumo}\n\n${(r && MOTIVOS[r.motivo]) || (r && r.detalhe) || 'O servidor não aceitou esta rota.'}`,
+    text: `${resumo}\n\n${(r && MOTIVOS[r.motivo === 'rede' ? 'rede_rota' : r.motivo]) || (r && r.detalhe) || 'O servidor não aceitou esta rota.'}`,
     ok: 'VOLTAR AO MAPA',
   });
 };
@@ -700,10 +721,10 @@ if (perfil && (!api.temServidor || api.temSessao())) {
   pintarHud();
   atualizarMapa();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
-  setInterval(atualizarMapa, 45000);
 } else {
   abrirOnboarding();
 }
+setInterval(() => { if (api.temSessao() && document.visibilityState === 'visible') atualizarMapa(); }, 45000);
 
 if (session.state !== 'idle') {
   toast('Rota em andamento recuperada.');

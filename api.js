@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=9';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=10';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -78,18 +78,22 @@ export async function criarConta({ apelido, pin, faccao, modelo, cor, codigo }) 
     contas[apelido] = p; gravar(CONTAS_KEY, contas);
     return { ok: true, perfil: { ...p } };
   }
+  let jaExistia = false;
   try {
     const d = await chamar('/auth/v1/signup', {
       metodo: 'POST', comToken: false, corpo: { email: emailDe(apelido), password: pin },
     });
     if (d && d.access_token) { sessao = d; gravar(SESSAO_KEY, d); }
   } catch (e) {
-    if (/already|registered|exists/i.test(e.message)) return { ok: false, motivo: 'apelido_em_uso' };
-    return { ok: false, motivo: 'rede', detalhe: e.message };
+    if (!/already|registered|exists/i.test(e.message)) return { ok: false, motivo: 'rede', detalhe: e.message };
+    jaExistia = true;
   }
   if (!temSessao()) {
+    // Pode ser uma conta criada antes e que ficou sem perfil (convite errado, queda de rede).
     const r = await entrar(apelido, pin);
-    if (!r.ok) return { ok: false, motivo: 'confirmacao_de_email' };
+    if (!r.ok && r.motivo === 'sem_perfil') { /* segue: falta só o perfil */ }
+    else if (!r.ok) return { ok: false, motivo: jaExistia ? 'apelido_em_uso' : 'confirmacao_de_email' };
+    else return { ok: false, motivo: 'apelido_em_uso' };
   }
   let res;
   try {
@@ -115,13 +119,22 @@ export async function salvarVisual({ modelo, cor }) {
     return { ok: true };
   }
   try {
-    await chamar('/rest/v1/perfis', { metodo: 'PATCH', corpo: { modelo, cor } });
+    const u = sessao && sessao.user && sessao.user.id;
+    await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor } });
     return { ok: true };
   } catch (e) { return { ok: false, detalhe: e.message }; }
 }
 
 /* ===================== jogo ===================== */
+function marcarRota(rota) {
+  if (!rota.uid) {
+    rota.uid = `${rota.startedAt}-${rota.finishedAt}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  return rota;
+}
+
 export async function enviarRota(rota) {
+  marcarRota(rota);
   if (!temServidor || !temSessao()) {
     const fila = ler(ROTAS_KEY) || [];
     fila.push(rota); gravar(ROTAS_KEY, fila);
@@ -129,7 +142,7 @@ export async function enviarRota(rota) {
   }
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
   try {
-    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos } });
+    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid } });
   } catch (e) {
     const fila = ler(ROTAS_KEY) || [];
     fila.push(rota); gravar(ROTAS_KEY, fila);   // guarda para reenviar
@@ -151,8 +164,9 @@ export async function reenviarPendentes() {
 }
 
 async function enviarRotaDireto(rota) {
+  marcarRota(rota);
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
-  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos } }); }
+  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid } }); }
   catch { return null; }
 }
 
