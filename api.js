@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=10';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=11';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -106,10 +106,16 @@ export async function criarConta({ apelido, pin, faccao, modelo, cor, codigo }) 
   return { ok: true, perfil: { apelido, faccao, modelo, cor } };
 }
 
+export function meuId() {
+  return sessao && sessao.user ? sessao.user.id : null;
+}
+
 export async function meuPerfil() {
   if (!temServidor || !temSessao()) return null;
+  const u = meuId();
+  if (!u) return null;   // sem o id não dá para saber qual perfil é o meu
   try {
-    const d = await chamar('/rest/v1/perfis?select=apelido,faccao,modelo,cor&limit=1');
+    const d = await chamar(`/rest/v1/perfis?select=apelido,faccao,modelo,cor&id=eq.${u}&limit=1`);
     return d && d[0] ? d[0] : null;
   } catch { return null; }
 }
@@ -119,7 +125,8 @@ export async function salvarVisual({ modelo, cor }) {
     return { ok: true };
   }
   try {
-    const u = sessao && sessao.user && sessao.user.id;
+    const u = meuId();
+    if (!u) return { ok: false, detalhe: 'sem sessão' };
     await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor } });
     return { ok: true };
   } catch (e) { return { ok: false, detalhe: e.message }; }
