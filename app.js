@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=12';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=13';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=12';
-import * as api from './api.js?v=12';
+} from './player.js?v=13';
+import * as api from './api.js?v=13';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -129,7 +129,7 @@ function irPara(nome) {
   if (nome === 'entrar') setTimeout(() => $('ent-nome').focus(), 180);
 }
 
-function abrirOnboarding({ edicao = false } = {}) {
+function abrirOnboarding({ edicao = false, tela = null } = {}) {
   modoEdicao = edicao;
   rascunho = edicao ? { ...perfil } : perfilVazio();
   aplicarCores(rascunho);
@@ -140,7 +140,7 @@ function abrirOnboarding({ edicao = false } = {}) {
   $('btn-sair').hidden = !edicao;
   $('logo-mark').innerHTML = logoSVG({ largura: 112, cor: corDoPerfil(rascunho), faccao: rascunho.faccao });
   ui.onb.hidden = false;
-  irPara(edicao ? 'tenis' : 'intro');
+  irPara(tela || (edicao ? 'tenis' : 'intro'));
 }
 
 function fecharOnboarding() {
@@ -591,7 +591,7 @@ function onFix(p) {
     if (r.accepted) {
       save();
       const agora = Date.now();
-      if (session.sessaoServidor && agora - ultimoPing > 90000) {
+      if (session.sessaoServidor && p.acc <= 25 && agora - ultimoPing > 90000) {
         ultimoPing = agora;
         api.pingRota(session.sessaoServidor, p.lat, p.lng, p.acc);
       }
@@ -636,9 +636,11 @@ let ultimoPing = 0;
 ui.start.onclick = async () => {
   if (!lastFix) { toast('Aguardando o GPS encontrar sua posição.'); return; }
 
+  const inicio = lastFix;   // a mesma leitura abre a rota e começa o percurso
   if (api.temSessao()) {
     ui.start.disabled = true;
-    const r = await api.iniciarRota(lastFix.lat, lastFix.lng);
+    toast('Abrindo a rota no servidor…', 2500);
+    const r = await api.iniciarRota(inicio.lat, inicio.lng);
     ui.start.disabled = false;
     if (!r || !r.ok) {
       const segue = await ask({
@@ -655,7 +657,7 @@ ui.start.onclick = async () => {
   }
 
   try {
-    session.start({ ...lastFix, t: SIM ? simT : Date.now() });
+    session.start({ ...inicio, t: SIM ? simT : Date.now() });
   } catch (e) { toast(e.message); return; }
   session.sessaoServidor = sessaoServidor;
   ultimoPing = Date.now();
@@ -758,8 +760,23 @@ setInterval(() => {
 /* ===================== início ===================== */
 aplicarCores(perfil);
 if (!api.temServidor) banner('Servidor ainda não ligado: sua conta e suas rotas ficam só neste aparelho.');
+function sessaoVencida() {
+  const quem = perfil ? perfil.apelido : '';
+  toast('Sua sessão expirou. Entre de novo com o apelido e o PIN.', 6000);
+  abrirOnboarding({ tela: 'entrar' });
+  if (quem) { $('ent-nome').value = quem; $('ent-nome').dispatchEvent(new Event('input', { bubbles: true })); }
+}
+
 if (perfil && (!api.temServidor || api.temSessao())) {
   pintarHud();
+  if (api.temServidor) {
+    api.meuPerfil().then((p) => {
+      if (!p) { sessaoVencida(); return; }
+      perfil = { ...perfil, ...p };
+      salvarPerfil(perfil);
+      aplicarCores(perfil); pintarHud(); atualizarMarcador();
+    });
+  }
   atualizarMapa();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
 } else {

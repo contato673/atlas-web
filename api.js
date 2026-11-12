@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=12';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=13';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -16,14 +16,25 @@ let sessao = ler(SESSAO_KEY);
 
 const emailDe = (apelido) => `${String(apelido).toLowerCase().replace(/[^a-z0-9]/g, '')}@atlas.jogo`;
 
-async function chamar(caminho, { metodo = 'GET', corpo, comToken = true, tentouRenovar = false } = {}) {
+async function chamar(caminho, { metodo = 'GET', corpo, comToken = true, tentouRenovar = false, prazo = 15000 } = {}) {
   const h = { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
   if (comToken && sessao && sessao.access_token) h.Authorization = `Bearer ${sessao.access_token}`;
-  const r = await fetch(SUPABASE_URL + caminho, {
-    method: metodo, headers: h, body: corpo === undefined ? undefined : JSON.stringify(corpo),
-  });
+  // Sem prazo, uma rede ruim deixa o jogo travado esperando para sempre.
+  const freio = new AbortController();
+  const relogio = setTimeout(() => freio.abort(), prazo);
+  let r;
+  try {
+    r = await fetch(SUPABASE_URL + caminho, {
+      method: metodo, headers: h, signal: freio.signal,
+      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+    });
+  } catch (e) {
+    throw new Error(e && e.name === 'AbortError' ? 'O servidor demorou demais para responder.' : 'Sem conexão com o servidor.');
+  } finally {
+    clearTimeout(relogio);
+  }
   if (r.status === 401 && comToken && !tentouRenovar && sessao && sessao.refresh_token) {
-    if (await renovar()) return chamar(caminho, { metodo, corpo, comToken, tentouRenovar: true });
+    if (await renovar()) return chamar(caminho, { metodo, corpo, comToken, tentouRenovar: true, prazo });
   }
   const texto = await r.text();
   let dados = null;
@@ -165,7 +176,7 @@ export async function enviarRota(rota) {
   }
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
   try {
-    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null } });
+    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null }, prazo: 30000 });
   } catch (e) {
     const fila = ler(ROTAS_KEY) || [];
     fila.push(rota); gravar(ROTAS_KEY, fila);   // guarda para reenviar
@@ -189,7 +200,7 @@ export async function reenviarPendentes() {
 async function enviarRotaDireto(rota) {
   marcarRota(rota);
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
-  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null } }); }
+  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null }, prazo: 30000 }); }
   catch { return null; }
 }
 
