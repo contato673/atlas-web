@@ -1,11 +1,14 @@
-// ATLAS — protótipo web da sessão de rota (Fase 2).
-// Registra a rota neste aparelho. Ainda NÃO existe servidor: nada é validado nem pontuado.
+// ATLAS — protótipo web: identidade do jogador + sessão de rota.
+// Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js';
+import {
+  FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
+} from './player.js';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
 const PENDING_KEY = 'atlas.pending.v1';
-const SIM = new URLSearchParams(location.search).has('sim'); // ?sim=1: toque no mapa simula o GPS (só para desenvolvimento)
+const SIM = new URLSearchParams(location.search).has('sim');
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -13,10 +16,10 @@ const ui = {
   start: $('btn-start'), finish: $('btn-finish'), abandon: $('btn-abandon'),
   dist: $('st-dist'), time: $('st-time'), home: $('st-home'),
   modal: $('modal'), mTitle: $('m-title'), mText: $('m-text'), mOk: $('m-ok'), mCancel: $('m-cancel'),
-  toast: $('toast'),
+  toast: $('toast'), onb: $('onb'),
+  hudShoe: $('hud-shoe'), hudNome: $('hud-nome'), hudFac: $('hud-fac'), perfil: $('btn-perfil'),
 };
 
-// ---------- armazenamento local (pode falhar em modo privado) ----------
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem armazenamento */ } },
@@ -24,14 +27,132 @@ const store = {
 };
 
 const session = RouteSession.restore(store.get(SESSION_KEY));
-let lastFix = null; // última leitura de GPS
+let perfil = carregarPerfil();
+let lastFix = null;
 let map = null;
 let mapReady = false;
+let marker = null;
 let wakeLock = null;
 let hiddenAt = null;
 let followMe = true;
 
-// ---------- utilidades de interface ----------
+/* ===================== cores ===================== */
+function aplicarCores(p) {
+  const raiz = document.documentElement.style;
+  raiz.setProperty('--neon', corDoPerfil(p));
+  raiz.setProperty('--fac', (FACCOES[p && p.faccao] || FACCOES.azul).cor);
+}
+
+function pintarHud() {
+  if (!perfil) return;
+  ui.hudShoe.innerHTML = sneakerSVG({ ...perfil, cor: corDoPerfil(perfil), largura: 34, brilho: 1 });
+  ui.hudNome.textContent = perfil.apelido;
+  ui.hudFac.textContent = FACCOES[perfil.faccao].nome;
+}
+
+/* ===================== pré-telas ===================== */
+let rascunho = perfilVazio();
+let modoEdicao = false;
+
+function telaAtual() { return document.querySelector('.scr:not([hidden])'); }
+
+function irPara(nome) {
+  document.querySelectorAll('.scr').forEach((s) => { s.hidden = s.dataset.scr !== nome; });
+  const t = telaAtual();
+  if (t) t.scrollTop = 0;
+  if (nome === 'tenis') desenharPreview();
+  if (nome === 'pronto') desenharResumo();
+  if (nome === 'nome') setTimeout(() => $('in-nome').focus(), 180);
+}
+
+function abrirOnboarding({ edicao = false } = {}) {
+  modoEdicao = edicao;
+  rascunho = edicao ? { ...perfil } : perfilVazio();
+  aplicarCores(rascunho);
+  montarOpcoes();
+  $('passo-tenis').textContent = edicao ? 'Perfil' : 'Passo 3 de 4';
+  // Em edição, mostra só a tela do tênis, com salvar/cancelar.
+  document.querySelector('[data-scr=tenis] [data-back]').textContent = edicao ? 'CANCELAR' : 'VOLTAR';
+  document.querySelector('[data-scr=tenis] [data-go]').textContent = edicao ? 'SALVAR' : 'CONTINUAR';
+  ui.onb.hidden = false;
+  irPara(edicao ? 'tenis' : 'intro');
+}
+
+function fecharOnboarding() {
+  ui.onb.hidden = true;
+  aplicarCores(perfil);
+  pintarHud();
+  atualizarMarcador();
+  render();
+}
+
+function montarOpcoes() {
+  const rm = $('row-modelo');
+  rm.innerHTML = MODELOS.map((m) => `<button type="button" data-modelo="${m.id}"><b>${m.nome}</b><i>${m.desc}</i></button>`).join('');
+  const rc = $('row-cor');
+  rc.innerHTML = NEONS.map((c) => `<button type="button" data-cor="${c.id}" title="${c.nome}" aria-label="${c.nome}"><span style="background:${c.cor};box-shadow:0 0 16px ${c.cor}"></span></button>`).join('');
+  marcarEscolhas();
+}
+
+function marcarEscolhas() {
+  document.querySelectorAll('[data-modelo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modelo === rascunho.modelo)));
+  document.querySelectorAll('[data-cor]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cor === rascunho.cor)));
+  document.querySelectorAll('[data-fac]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fac === rascunho.faccao)));
+}
+
+function desenharPreview() {
+  $('preview').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 300, brilho: 2.4 });
+}
+
+function desenharResumo() {
+  $('resumo-shoe').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 110, brilho: 1.6 });
+  $('resumo-nome').textContent = rascunho.apelido;
+  $('resumo-fac').textContent = `FACÇÃO ${FACCOES[rascunho.faccao].nome}`;
+  const m = MODELOS.find((x) => x.id === rascunho.modelo);
+  const c = NEONS.find((x) => x.id === rascunho.cor);
+  $('resumo-ten').textContent = `${m.nome} · ${c.nome}`;
+}
+
+// navegação e escolhas
+ui.onb.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+
+  if (b.dataset.fac) {
+    rascunho.faccao = b.dataset.fac;
+    aplicarCores(rascunho);
+    marcarEscolhas();
+    document.querySelector('[data-scr=faccao] [data-go]').disabled = false;
+    return;
+  }
+  if (b.dataset.modelo) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return; }
+  if (b.dataset.cor) { rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); return; }
+
+  if (b.dataset.back) {
+    if (modoEdicao) { fecharOnboarding(); return; }
+    irPara(b.dataset.back);
+    return;
+  }
+  if (b.dataset.go) {
+    if (modoEdicao) { perfil = { ...rascunho }; salvarPerfil(perfil); fecharOnboarding(); toast('Tênis atualizado.'); return; }
+    irPara(b.dataset.go);
+    return;
+  }
+  if (b.id === 'btn-entrar') {
+    perfil = { ...rascunho };
+    salvarPerfil(perfil);
+    fecharOnboarding();
+  }
+});
+
+$('in-nome').addEventListener('input', (e) => {
+  rascunho.apelido = e.target.value.trim().toUpperCase().slice(0, 16);
+  document.querySelector('[data-scr=nome] [data-go]').disabled = rascunho.apelido.length < 2;
+});
+
+ui.perfil.onclick = () => abrirOnboarding({ edicao: true });
+
+/* ===================== utilidades de interface ===================== */
 const fmtDist = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`);
 const fmtTime = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -69,7 +190,7 @@ function ask({ title, text, ok, cancel, danger }) {
   });
 }
 
-// ---------- tela ligada durante a rota ----------
+/* ===================== tela ligada durante a rota ===================== */
 async function keepScreenOn() {
   if (!('wakeLock' in navigator) || wakeLock) return;
   try {
@@ -100,7 +221,7 @@ document.addEventListener('visibilitychange', () => {
   hiddenAt = null;
 });
 
-// ---------- mapa ----------
+/* ===================== mapa ===================== */
 async function pickStyle() {
   for (const name of ['dark', 'liberty']) {
     try {
@@ -124,22 +245,45 @@ async function initMap() {
   });
   map.touchZoomRotate.disableRotation();
   map.on('dragstart', () => { followMe = false; });
+  map.on('error', (e) => {
+    const msg = String((e && e.error && e.error.message) || '');
+    if (msg) banner(`Problema no mapa: ${msg}`);
+  });
 
   map.on('load', () => {
     map.addSource('zone', { type: 'geojson', data: empty() });
     map.addSource('route', { type: 'geojson', data: empty() });
-    map.addSource('me', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': '#39ff9c', 'fill-opacity': 0.14 } });
     map.addLayer({ id: 'zone-line', type: 'line', source: 'zone', paint: { 'line-color': '#39ff9c', 'line-width': 2, 'line-dasharray': [2, 2] } });
-    map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#22e3ff', 'line-width': 9, 'line-opacity': 0.25 } });
-    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#22e3ff', 'line-width': 4 } });
-    map.addLayer({ id: 'me-halo', type: 'circle', source: 'me', paint: { 'circle-radius': 16, 'circle-color': '#22e3ff', 'circle-opacity': 0.2 } });
-    map.addLayer({ id: 'me-dot', type: 'circle', source: 'me', paint: { 'circle-radius': 7, 'circle-color': '#22e3ff', 'circle-stroke-color': '#0b0f14', 'circle-stroke-width': 2 } });
+    map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 11, 'line-opacity': 0.22, 'line-blur': 3 } });
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 4 } });
     mapReady = true;
+    atualizarMarcador();
     drawAll();
   });
 
   if (SIM) map.on('click', (e) => simulate(e.lngLat));
+}
+
+function atualizarMarcador() {
+  if (!mapReady) return;
+  const cor = corDoPerfil(perfil);
+  if (map.getLayer('route-line')) {
+    map.setPaintProperty('route-line', 'line-color', cor);
+    map.setPaintProperty('route-glow', 'line-color', cor);
+  }
+  if (!lastFix) { if (marker) { marker.remove(); marker = null; } return; }
+
+  if (!marker) {
+    const el = document.createElement('div');
+    el.className = 'me-marker';
+    el.innerHTML = '<div class="me-pulse"></div><div class="me-dot"></div><div class="me-shoe"></div>';
+    marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lastFix.lng, lastFix.lat]).addTo(map);
+  }
+  marker.getElement().querySelector('.me-shoe').innerHTML =
+    sneakerSVG({ ...(perfil || perfilVazio()), cor, largura: 62, brilho: 2 });
+  marker.setLngLat([lastFix.lng, lastFix.lat]);
 }
 
 function drawAll() {
@@ -148,13 +292,12 @@ function drawAll() {
   map.getSource('route').setData(session.points.length > 1
     ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: session.points.map((p) => [p.lng, p.lat]) } }
     : empty());
-  map.getSource('me').setData(lastFix
-    ? { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [lastFix.lng, lastFix.lat] } }
-    : empty());
+  if (marker && lastFix) marker.setLngLat([lastFix.lng, lastFix.lat]);
+  else if (lastFix) atualizarMarcador();
   map.setPaintProperty('zone-fill', 'fill-opacity', session.canFinish ? 0.3 : 0.14);
 }
 
-// ---------- GPS ----------
+/* ===================== GPS ===================== */
 let firstFix = true;
 function onFix(p) {
   lastFix = p;
@@ -175,20 +318,20 @@ function onFix(p) {
 }
 
 function startGps() {
-  if (SIM) { ui.gps.textContent = 'GPS: simulação (toque no mapa)'; return; }
+  if (SIM) { ui.gps.innerHTML = 'GPS <span>simulação</span>'; return; }
   if (!('geolocation' in navigator)) { banner('Este navegador não oferece localização.'); return; }
   navigator.geolocation.watchPosition(
     (pos) => onFix({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, t: pos.timestamp || Date.now() }),
     (err) => {
       ui.gps.className = 'chip bad';
-      ui.gps.textContent = err.code === 1 ? 'GPS: permissão negada' : 'GPS: sem sinal';
+      ui.gps.innerHTML = err.code === 1 ? 'GPS <span>bloqueado</span>' : 'GPS <span>sem sinal</span>';
       if (err.code === 1) banner('Permita o acesso à localização para este site nos ajustes do Safari e recarregue a página.');
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
   );
 }
 
-// Simulação: cada toque vira uma leitura, com o relógio avançando em ritmo de caminhada (1,4 m/s).
+// Simulação: cada toque vira uma leitura, com o relógio avançando em ritmo de caminhada.
 let simT = Date.now();
 function simulate(lngLat) {
   const p = { lat: lngLat.lat, lng: lngLat.lng, acc: 5 };
@@ -197,7 +340,7 @@ function simulate(lngLat) {
   onFix({ ...p, t: simT });
 }
 
-// ---------- ações do jogador ----------
+/* ===================== ações do jogador ===================== */
 function save() {
   if (session.state === 'idle') store.del(SESSION_KEY);
   else store.set(SESSION_KEY, session.serialize());
@@ -216,7 +359,7 @@ ui.start.onclick = () => {
 };
 
 ui.finish.onclick = async () => {
-  if (!session.canFinish) return; // proteção extra: o botão só aparece dentro do raio
+  if (!session.canFinish) return;
   const payload = session.finish(SIM ? simT : Date.now());
   const pending = store.get(PENDING_KEY) || [];
   pending.push(payload);
@@ -247,18 +390,19 @@ ui.abandon.onclick = async () => {
   drawAll();
 };
 
-// ---------- desenho do estado ----------
+/* ===================== desenho do estado ===================== */
 function render() {
   const st = session.state;
   ui.start.hidden = st !== 'idle';
-  ui.finish.hidden = st !== 'ready'; // fora do raio de 20 m o botão não existe na tela
+  ui.finish.hidden = st !== 'ready';
   ui.abandon.hidden = st === 'idle';
   ui.stats.hidden = st === 'idle';
+  ui.perfil.disabled = st !== 'idle';
 
   if (lastFix && !SIM) {
     const good = lastFix.acc <= CONFIG.MAX_ACCURACY_M;
     ui.gps.className = `chip ${good ? 'ok' : 'bad'}`;
-    ui.gps.textContent = `GPS ±${Math.round(lastFix.acc)} m`;
+    ui.gps.innerHTML = `GPS <span>±${Math.round(lastFix.acc)} m</span>`;
   }
   ui.start.disabled = !lastFix;
 
@@ -281,10 +425,12 @@ setInterval(() => {
   if (session.state !== 'idle') ui.time.textContent = fmtTime((SIM ? simT : Date.now()) - session.startedAt);
 }, 1000);
 
-// ---------- início ----------
+/* ===================== início ===================== */
+aplicarCores(perfil);
+if (perfil) pintarHud(); else abrirOnboarding();
+
 if (session.state !== 'idle') {
   toast('Rota em andamento recuperada.');
-  // No iOS a tela só pode ser travada ligada após um toque: tenta agora e no primeiro toque.
   keepScreenOn();
   document.addEventListener('pointerdown', keepScreenOn, { once: true });
 }

@@ -3,19 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0b0f14">
+  <meta name="theme-color" content="#05080c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>ATLAS — protótipo de rota</title>
+  <title>ATLAS — Conquista Territorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- ===================== MAPA ===================== -->
   <div id="map"></div>
+  <div id="vinheta"></div>
 
   <header id="top">
-    <div class="brand">ATLAS <span>protótipo</span></div>
-    <div id="gps" class="chip">GPS: aguardando…</div>
+    <button id="btn-perfil" class="hud-id" type="button">
+      <span class="hud-shoe" id="hud-shoe"></span>
+      <span class="hud-txt"><b id="hud-nome">—</b><i id="hud-fac">—</i></span>
+    </button>
+    <div id="gps" class="chip">GPS <span>aguardando</span></div>
   </header>
 
   <div id="banner" hidden></div>
@@ -33,6 +42,108 @@
     <button id="btn-abandon" class="btn ghost" hidden>DESISTIR DA ROTA</button>
   </footer>
 
+  <!-- ===================== PRÉ-TELAS ===================== -->
+  <div id="onb" hidden>
+    <div class="onb-grid"></div>
+    <div class="onb-scan"></div>
+
+    <!-- 1. Entrada -->
+    <section class="scr" data-scr="intro">
+      <div class="scr-mid">
+        <div class="logo">
+          <span class="logo-mark"></span>
+          <h1>ATLAS</h1>
+          <p class="logo-sub">CONQUISTA TERRITORIAL</p>
+        </div>
+        <p class="lead">A cidade é o tabuleiro. Percorra um circuito a pé e feche território para a sua equipe.</p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn primary" data-go="faccao">COMEÇAR</button>
+        <p class="nota">Protótipo. Sem servidor: nada é validado nem pontuado ainda.</p>
+      </div>
+    </section>
+
+    <!-- 2. Facção -->
+    <section class="scr" data-scr="faccao" hidden>
+      <div class="scr-head"><span class="passo">Passo 1 de 4</span><h2>Escolha sua facção</h2></div>
+      <div class="scr-mid">
+        <div class="facs">
+          <button class="fac" data-fac="azul">
+            <span class="fac-bar"></span>
+            <b>AZUL</b><i>Avanço calculado</i>
+          </button>
+          <button class="fac" data-fac="vermelha">
+            <span class="fac-bar"></span>
+            <b>VERMELHA</b><i>Pressão constante</i>
+          </button>
+        </div>
+        <p class="nota">A facção define a cor do seu território no mapa. Não dá vantagem de regra.</p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="intro">VOLTAR</button>
+        <button class="btn primary" data-go="nome" disabled>CONTINUAR</button>
+      </div>
+    </section>
+
+    <!-- 3. Apelido -->
+    <section class="scr" data-scr="nome" hidden>
+      <div class="scr-head"><span class="passo">Passo 2 de 4</span><h2>Como quer ser chamado?</h2></div>
+      <div class="scr-mid">
+        <label class="campo">
+          <span>Apelido no jogo</span>
+          <input id="in-nome" type="text" maxlength="16" autocomplete="off" autocapitalize="characters"
+                 spellcheck="false" placeholder="ex.: NOITE">
+        </label>
+        <p class="nota">Aparece como proprietário dos territórios que você conquistar. Use um apelido, não seu nome completo.</p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="faccao">VOLTAR</button>
+        <button class="btn primary" data-go="tenis" disabled>CONTINUAR</button>
+      </div>
+    </section>
+
+    <!-- 4. Tênis -->
+    <section class="scr" data-scr="tenis" hidden>
+      <div class="scr-head"><span class="passo" id="passo-tenis">Passo 3 de 4</span><h2>Monte seu tênis</h2></div>
+      <div class="scr-mid">
+        <div class="palco"><div class="palco-piso"></div><div id="preview"></div></div>
+        <div class="opt">
+          <span class="opt-tit">Modelo</span>
+          <div class="opt-row" id="row-modelo"></div>
+        </div>
+        <div class="opt">
+          <span class="opt-tit">Cor neon</span>
+          <div class="opt-row cores" id="row-cor"></div>
+        </div>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="nome">VOLTAR</button>
+        <button class="btn primary" data-go="pronto">CONTINUAR</button>
+      </div>
+    </section>
+
+    <!-- 5. Pronto -->
+    <section class="scr" data-scr="pronto" hidden>
+      <div class="scr-head"><span class="passo">Passo 4 de 4</span><h2>Tudo pronto</h2></div>
+      <div class="scr-mid">
+        <div class="cartao">
+          <div class="cartao-shoe" id="resumo-shoe"></div>
+          <div class="cartao-txt">
+            <b id="resumo-nome">—</b>
+            <i id="resumo-fac">—</i>
+            <span id="resumo-ten">—</span>
+          </div>
+        </div>
+        <p class="nota">Dá para mudar o tênis depois, pelo seu nome no alto do mapa.</p>
+      </div>
+      <div class="scr-foot">
+        <button class="btn ghost" data-back="tenis">VOLTAR</button>
+        <button class="btn primary" id="btn-entrar">ENTRAR NO MAPA</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== DIÁLOGOS ===================== -->
   <div id="modal" hidden>
     <div class="card">
       <h2 id="m-title"></h2>
