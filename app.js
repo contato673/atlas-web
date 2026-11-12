@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=5';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=6';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=5';
-import * as api from './api.js?v=5';
+} from './player.js?v=6';
+import * as api from './api.js?v=6';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -43,7 +43,7 @@ let territorios = null;
 function aplicarCores(p) {
   const raiz = document.documentElement.style;
   raiz.setProperty('--neon', corDoPerfil(p));
-  raiz.setProperty('--fac', (FACCOES[p && p.faccao] || FACCOES.azul).cor);
+  raiz.setProperty('--fac', (FACCOES[p && p.faccao] || FACCOES.meridiano).cor);
 }
 
 function pintarHud() {

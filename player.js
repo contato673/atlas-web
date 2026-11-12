@@ -59,9 +59,9 @@ let uid = 0;
 
 /**
  * Desenha o tênis como SVG.
- * cor: neon do jogador (vem do perfil). faccao: 'azul' | 'vermelha'.
+ * cor: neon do jogador (vem do perfil). faccao: 'meridiano' | 'azimute'.
  */
-export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'azul', largura = 64, brilho = 1.6 } = {}) {
+export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'meridiano', largura = 64, brilho = 1.6 } = {}) {
   const f = FORMAS[modelo] || FORMAS.runner;
   const corFaccao = (FACCOES[faccao] || FACCOES.meridiano).cor;
   const n = `s${++uid}`;
@@ -127,7 +127,7 @@ export function perfilVazio() {
  * Marca do ATLAS: o titã que sustenta o mundo e o atlas que mapeia a cidade.
  * Cúpula (o mundo) apoiada sobre um "A" atlético, dentro de moldura hexagonal.
  */
-export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilho = 2 } = {}) {
+export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'meridiano', brilho = 2 } = {}) {
   const corFac = (FACCOES[faccao] || FACCOES.meridiano).cor;
   const n = `l${++uid}`;
   return `<svg viewBox="0 0 120 124" width="${largura}" height="${(largura * 124) / 120}" aria-hidden="true">
