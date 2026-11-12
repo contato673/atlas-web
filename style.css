@@ -177,8 +177,8 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   transition: border-color .15s, transform .1s;
 }
 .fac-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.fac[data-fac=azul] .fac-bar { background: #2f7bff; box-shadow: 0 0 20px #2f7bff; }
-.fac[data-fac=vermelha] .fac-bar { background: #ff3b4e; box-shadow: 0 0 20px #ff3b4e; }
+.fac[data-fac=meridiano] .fac-bar { background: #2f7bff; box-shadow: 0 0 20px #2f7bff; }
+.fac[data-fac=azimute] .fac-bar { background: #22d97a; box-shadow: 0 0 20px #22d97a; }
 .fac b { display: block; font-family: Orbitron, sans-serif; font-size: 19px; letter-spacing: .14em; }
 .fac i { font-style: normal; font-size: 12.5px; color: var(--muted); }
 .fac[aria-pressed=true] { border-color: var(--fac); background: color-mix(in srgb, var(--fac) 13%, var(--panel-solida)); }

@@ -4,17 +4,20 @@
 export const PLAYER_KEY = 'atlas.player.v1';
 
 export const FACCOES = {
-  azul: { nome: 'AZUL', cor: '#2f7bff', clara: '#8fbaff', lema: 'Avanço calculado' },
-  vermelha: { nome: 'VERMELHA', cor: '#ff3b4e', clara: '#ff97a2', lema: 'Pressão constante' },
+  meridiano: { nome: 'MERIDIANO', cor: '#2f7bff', clara: '#8fbaff', lema: 'Avanço calculado', corNome: 'Azul' },
+  azimute: { nome: 'AZIMUTE', cor: '#22d97a', clara: '#8cf0bd', lema: 'Pressão constante', corNome: 'Verde' },
 };
+
+// Perfis criados antes dos nomes das facções.
+const FACCAO_ANTIGA = { azul: 'meridiano', vermelha: 'azimute', verde: 'azimute' };
 
 export const NEONS = [
   { id: 'ciano', nome: 'Ciano', cor: '#22e3ff' },
-  { id: 'verde', nome: 'Verde', cor: '#39ff9c' },
-  { id: 'lima', nome: 'Lima', cor: '#d4ff3d' },
-  { id: 'magenta', nome: 'Magenta', cor: '#ff3df0' },
+  { id: 'lima', nome: 'Lima', cor: '#c6ff3d' },
+  { id: 'roxo', nome: 'Roxo', cor: '#a855ff' },
+  { id: 'violeta', nome: 'Violeta', cor: '#7b5bff' },
   { id: 'laranja', nome: 'Laranja', cor: '#ff8a1f' },
-  { id: 'violeta', nome: 'Violeta', cor: '#9a5cff' },
+  { id: 'coral', nome: 'Coral', cor: '#ff5a6e' },
 ];
 
 export const MODELOS = [
@@ -60,7 +63,7 @@ let uid = 0;
  */
 export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'azul', largura = 64, brilho = 1.6 } = {}) {
   const f = FORMAS[modelo] || FORMAS.runner;
-  const corFaccao = (FACCOES[faccao] || FACCOES.azul).cor;
+  const corFaccao = (FACCOES[faccao] || FACCOES.meridiano).cor;
   const n = `s${++uid}`;
   const cadarcos = f.cadarcos
     .map(([x1, y1, x2, y2]) => `<path d="M${x1},${y1} L${x2},${y2}" stroke="${corFaccao}" stroke-width="1.5" stroke-linecap="round" opacity=".95"/>`)
@@ -93,7 +96,7 @@ export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'azul'
 </svg>`;
 }
 
-const vazio = { apelido: '', faccao: 'azul', modelo: 'runner', cor: 'ciano' };
+const vazio = { apelido: '', faccao: 'meridiano', modelo: 'runner', cor: 'ciano' };
 
 export function corDoPerfil(p) {
   return (NEONS.find((n) => n.id === (p && p.cor)) || NEONS[0]).cor;
@@ -102,7 +105,12 @@ export function corDoPerfil(p) {
 export function carregarPerfil() {
   try {
     const p = JSON.parse(localStorage.getItem(PLAYER_KEY));
-    return p && p.apelido ? { ...vazio, ...p } : null;
+    if (!p || !p.apelido) return null;
+    const perfil = { ...vazio, ...p };
+    if (FACCAO_ANTIGA[perfil.faccao]) perfil.faccao = FACCAO_ANTIGA[perfil.faccao];
+    if (!FACCOES[perfil.faccao]) perfil.faccao = vazio.faccao;
+    if (!NEONS.some((n) => n.id === perfil.cor)) perfil.cor = vazio.cor;
+    return perfil;
   } catch { return null; }
 }
 
@@ -120,7 +128,7 @@ export function perfilVazio() {
  * Cúpula (o mundo) apoiada sobre um "A" atlético, dentro de moldura hexagonal.
  */
 export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilho = 2 } = {}) {
-  const corFac = (FACCOES[faccao] || FACCOES.azul).cor;
+  const corFac = (FACCOES[faccao] || FACCOES.meridiano).cor;
   const n = `l${++uid}`;
   return `<svg viewBox="0 0 120 124" width="${largura}" height="${(largura * 124) / 120}" aria-hidden="true">
   <defs>

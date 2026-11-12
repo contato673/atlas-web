@@ -1,10 +1,10 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=3';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=4';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=3';
+} from './player.js?v=4';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -67,13 +67,16 @@ const LORE = [
     titulo: 'O Levantamento',
     texto: 'Quando as cidades deixaram de ser medidas por quem as caminhava, elas começaram a esquecer o próprio desenho. '
       + 'Ruas viraram linhas em um servidor. Praças viraram polígonos sem dono.\n\n'
-      + 'O projeto ATLAS nasceu para refazer esse mapa do único jeito que ninguém consegue falsificar: passo a passo.',
+      + 'O projeto ATLAS nasceu para refazer esse mapa do único jeito que ninguém consegue falsificar: passo a passo. '
+      + 'Duas equipes saíram a campo com o mesmo caderno: uma para fixar as linhas, outra para abrir os rumos.',
   },
   {
     titulo: 'A Cisão',
-    texto: 'A equipe do levantamento se dividiu sobre o que fazer com o mapa pronto.\n\n'
-      + 'A AZUL defende que o mapa pertence a quem o mantém: avanço calculado, território que se segura.\n\n'
-      + 'A VERMELHA responde que o mapa pertence a quem o percorre: pressão constante, território que se toma.\n\n'
+    texto: 'Com o mapa pronto, o levantamento se partiu em dois.\n\n'
+      + 'MERIDIANO ficou com as linhas. Para eles o mapa pertence a quem o mantém: avanço calculado, '
+      + 'território que se segura. Marcam a cidade de azul.\n\n'
+      + 'AZIMUTE ficou com os rumos. Para eles o mapa pertence a quem o percorre: pressão constante, '
+      + 'território que se toma. Marcam a cidade de verde.\n\n'
       + 'Nenhum dos dois lados venceu. Por isso a cidade continua em disputa.',
   },
   {
@@ -349,8 +352,8 @@ async function initMap() {
   map.on('load', () => {
     map.addSource('zone', { type: 'geojson', data: empty() });
     map.addSource('route', { type: 'geojson', data: empty() });
-    map.addLayer({ id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': '#39ff9c', 'fill-opacity': 0.14 } });
-    map.addLayer({ id: 'zone-line', type: 'line', source: 'zone', paint: { 'line-color': '#39ff9c', 'line-width': 2, 'line-dasharray': [2, 2] } });
+    map.addLayer({ id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.14 } });
+    map.addLayer({ id: 'zone-line', type: 'line', source: 'zone', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 2, 'line-dasharray': [2, 2] } });
     map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 11, 'line-opacity': 0.22, 'line-blur': 3 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 4 } });
     mapReady = true;
@@ -367,6 +370,8 @@ function atualizarMarcador() {
   if (map.getLayer('route-line')) {
     map.setPaintProperty('route-line', 'line-color', cor);
     map.setPaintProperty('route-glow', 'line-color', cor);
+    map.setPaintProperty('zone-fill', 'fill-color', cor);
+    map.setPaintProperty('zone-line', 'line-color', cor);
   }
   if (!lastFix) { if (marker) { marker.remove(); marker = null; } return; }
 
