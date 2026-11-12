@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=11';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=12';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -133,6 +133,22 @@ export async function salvarVisual({ modelo, cor }) {
 }
 
 /* ===================== jogo ===================== */
+// A rota é aberta no servidor ANTES de caminhar: o relógio que vale é o dele.
+export async function iniciarRota(lat, lng) {
+  if (!temServidor || !temSessao()) return { ok: false, motivo: 'sem_servidor' };
+  try {
+    return await chamar('/rest/v1/rpc/iniciar_rota', { metodo: 'POST', corpo: { lat, lng } });
+  } catch (e) { return { ok: false, motivo: 'rede', detalhe: e.message }; }
+}
+
+// Sinal de vida durante a caminhada, com a hora marcada pelo servidor.
+export async function pingRota(sessao, lat, lng, precisao) {
+  if (!temServidor || !temSessao() || !sessao) return { ok: false };
+  try {
+    return await chamar('/rest/v1/rpc/ping_rota', { metodo: 'POST', corpo: { sessao, lat, lng, precisao } });
+  } catch { return { ok: false }; }
+}
+
 function marcarRota(rota) {
   if (!rota.uid) {
     rota.uid = `${rota.startedAt}-${rota.finishedAt}-${Math.random().toString(36).slice(2, 8)}`;
@@ -149,7 +165,7 @@ export async function enviarRota(rota) {
   }
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
   try {
-    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid } });
+    return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null } });
   } catch (e) {
     const fila = ler(ROTAS_KEY) || [];
     fila.push(rota); gravar(ROTAS_KEY, fila);   // guarda para reenviar
@@ -173,7 +189,7 @@ export async function reenviarPendentes() {
 async function enviarRotaDireto(rota) {
   marcarRota(rota);
   const pontos = rota.points.map((p) => ({ lat: p.lat, lng: p.lng, acc: p.acc, t: p.t }));
-  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid } }); }
+  try { return await chamar('/rest/v1/rpc/finalizar_rota', { metodo: 'POST', corpo: { pontos, rota_uid: rota.uid, sessao: rota.sessao || null } }); }
   catch { return null; }
 }
 

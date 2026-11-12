@@ -1,11 +1,11 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=11';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=12';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=11';
-import * as api from './api.js?v=11';
+} from './player.js?v=12';
+import * as api from './api.js?v=12';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -38,6 +38,7 @@ let wakeLock = null;
 let hiddenAt = null;
 let followMe = true;
 let territorios = null;
+let sessaoServidor = null;
 
 /* ===================== cores ===================== */
 function aplicarCores(p) {
@@ -63,6 +64,16 @@ const MOTIVOS = {
   area_pequena: 'A área fechada ficou pequena demais.',
   circuito_invalido: 'O traçado não formou uma área fechada válida.',
   so_area_protegida: 'Todo o circuito caiu sobre território inimigo protegido. Nada foi conquistado.',
+  sem_sessao: 'Esta rota não foi aberta no servidor, então não vale território.',
+  sessao_invalida: 'O servidor não reconheceu esta rota.',
+  sessao_usada: 'Esta rota já tinha sido encerrada no servidor.',
+  sessao_velha: 'A rota ficou aberta tempo demais e expirou.',
+  rapido_para_o_relogio: 'Pelo relógio do servidor, esse percurso foi rápido demais para ter sido feito a pé.',
+  tempo_inconsistente: 'O tempo marcado no aparelho não bate com o tempo real da rota.',
+  pings_fora_do_trajeto: 'As posições enviadas durante a caminhada não batem com o trajeto final.',
+  inicio_diferente: 'O começo do trajeto não bate com o lugar onde a rota foi aberta.',
+  rapido_demais: 'Espere alguns minutos entre uma conquista e outra.',
+  limite_diario: 'Você chegou ao limite de conquistas por dia.',
   sem_perfil: 'Essa conta existe, mas ficou sem perfil. Use CRIAR CONTA com o mesmo apelido e PIN para terminar o cadastro.',
   sem_servidor: 'O servidor ainda não está ligado: a rota ficou guardada neste aparelho.',
   rede: 'Não deu para falar com o servidor. Confira a internet e tente de novo.',
@@ -579,6 +590,11 @@ function onFix(p) {
     const r = session.addPoint(p);
     if (r.accepted) {
       save();
+      const agora = Date.now();
+      if (session.sessaoServidor && agora - ultimoPing > 90000) {
+        ultimoPing = agora;
+        api.pingRota(session.sessaoServidor, p.lat, p.lng, p.acc);
+      }
       if (r.justReturned) { aviso(); toast('Você voltou ao ponto inicial. Toque em FINALIZAR ROTA para encerrar.', 6000); }
     }
   }
@@ -615,11 +631,34 @@ function save() {
   else store.set(SESSION_KEY, session.serialize());
 }
 
-ui.start.onclick = () => {
+let ultimoPing = 0;
+
+ui.start.onclick = async () => {
   if (!lastFix) { toast('Aguardando o GPS encontrar sua posição.'); return; }
+
+  if (api.temSessao()) {
+    ui.start.disabled = true;
+    const r = await api.iniciarRota(lastFix.lat, lastFix.lng);
+    ui.start.disabled = false;
+    if (!r || !r.ok) {
+      const segue = await ask({
+        title: 'Sem conexão com o servidor',
+        text: 'A rota precisa ser aberta no servidor para valer território.\n\n'
+          + 'Dá para caminhar assim mesmo e testar o GPS, mas o percurso não vai conquistar nada.',
+        ok: 'CAMINHAR ASSIM MESMO', cancel: 'TENTAR DE NOVO',
+      });
+      if (!segue) return;
+      sessaoServidor = null;
+    } else {
+      sessaoServidor = r.sessao;
+    }
+  }
+
   try {
     session.start({ ...lastFix, t: SIM ? simT : Date.now() });
   } catch (e) { toast(e.message); return; }
+  session.sessaoServidor = sessaoServidor;
+  ultimoPing = Date.now();
   followMe = true;
   save();
   keepScreenOn();
@@ -630,6 +669,8 @@ ui.start.onclick = () => {
 ui.finish.onclick = async () => {
   if (!session.canFinish) return;
   const payload = session.finish(SIM ? simT : Date.now());
+  payload.sessao = sessaoServidor;
+  sessaoServidor = null;
   save();
   releaseScreen();
   render();
@@ -727,6 +768,7 @@ if (perfil && (!api.temServidor || api.temSessao())) {
 setInterval(() => { if (api.temSessao() && document.visibilityState === 'visible') atualizarMapa(); }, 45000);
 
 if (session.state !== 'idle') {
+  sessaoServidor = session.sessaoServidor || null;
   toast('Rota em andamento recuperada.');
   keepScreenOn();
   document.addEventListener('pointerdown', keepScreenOn, { once: true });
