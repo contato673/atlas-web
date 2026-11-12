@@ -1,6 +1,5 @@
-// ATLAS — ligação com o servidor.
-// Enquanto estes dois valores estiverem vazios, o jogo roda em MODO LOCAL:
-// a conta e as rotas ficam só no aparelho e ninguém vê ninguém.
-// Preencha com os dados do projeto Supabase (Project Settings → API).
-export const SUPABASE_URL = '';
-export const SUPABASE_ANON_KEY = '';
+// ATLAS — ligação com o servidor (projeto Supabase "ATLAS", região São Paulo).
+// A chave publicável é pública por natureza: quem protege os dados são as
+// regras de acesso do banco (RLS), não o segredo da chave.
+export const SUPABASE_URL = 'https://idchqujerowquovbllaz.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_QnQTRqKSDkqQlMOXH8o_2A_eXDRWulQ';
