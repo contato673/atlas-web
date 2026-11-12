@@ -119,7 +119,7 @@ export function perfilVazio() {
  * Marca do ATLAS: o titã que sustenta o mundo e o atlas que mapeia a cidade.
  * Cúpula (o mundo) apoiada sobre um "A" atlético, dentro de moldura hexagonal.
  */
-export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilho = 2.6 } = {}) {
+export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilho = 2 } = {}) {
   const corFac = (FACCOES[faccao] || FACCOES.azul).cor;
   const n = `l${++uid}`;
   return `<svg viewBox="0 0 120 124" width="${largura}" height="${(largura * 124) / 120}" aria-hidden="true">
@@ -136,12 +136,13 @@ export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'azul', brilh
     <path d="M60,6 L107,33 L107,87 L60,114 L13,87 L13,33 Z" stroke-width="1.6" opacity=".38"/>
     <path d="M60,6 L72,13 M107,33 L107,46 M107,87 L95,94 M60,114 L48,107 M13,87 L13,74 M13,33 L25,26"
           stroke-width="3" opacity=".9"/>
-    <path d="M27,50 A33,33 0 0 1 93,50" stroke-width="3.4"/>
-    <path d="M40,50 A20,33 0 0 1 80,50" stroke-width="1.4" opacity=".5"/>
-    <path d="M33,38 H87" stroke-width="1.4" opacity=".45"/>
-    <path d="M38,99 L60,55 L82,99" stroke-width="7.5" stroke-linejoin="round"/>
-    <path d="M48,84 H72" stroke-width="6"/>
-    <path d="M16,62 H25 M18,70 H29 M20,78 H27" stroke-width="2.4" opacity=".55"/>
+    <path d="M26,52 A34,34 0 0 1 94,52" stroke-width="3.6"/>
+    <path d="M60,18 A26,34 0 0 1 86,52 M60,18 A26,34 0 0 0 34,52" stroke-width="1.3" opacity=".45"/>
+    <path d="M26,52 H94" stroke-width="2" opacity=".75"/>
+    <path d="M37,101 L60,56 L83,101" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M47,85 H73" stroke-width="7"/>
+    <path d="M15,64 H26 M17,73 H30 M19,82 H28" stroke-width="2.6" opacity=".6"/>
+    <path d="M105,64 H94 M103,73 H90 M101,82 H92" stroke-width="2.6" opacity=".6"/>
     <path d="M104,62 H95 M102,70 H91 M100,78 H93" stroke-width="2.4" opacity=".55"/>
   </g>
 </svg>`;
