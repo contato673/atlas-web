@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=17';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=18';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -89,6 +89,11 @@ export async function criarConta({ apelido, pin, faccao, modelo, cor, codigo }) 
     contas[apelido] = p; gravar(CONTAS_KEY, contas);
     return { ok: true, perfil: { ...p } };
   }
+  // Já logado e com perfil pronto? Então não é cadastro, é entrada.
+  if (temSessao()) {
+    const meu = await meuPerfil().catch(() => null);
+    if (meu) return { ok: true, perfil: meu, jaEra: true };
+  }
   let jaExistia = false;
   try {
     const d = await chamar('/auth/v1/signup', {
@@ -104,7 +109,9 @@ export async function criarConta({ apelido, pin, faccao, modelo, cor, codigo }) 
     const r = await entrar(apelido, pin);
     if (!r.ok && r.motivo === 'sem_perfil') { /* segue: falta só o perfil */ }
     else if (!r.ok) return { ok: false, motivo: jaExistia ? 'apelido_em_uso' : 'confirmacao_de_email' };
-    else return { ok: false, motivo: 'apelido_em_uso' };
+    // O apelido já tem conta E o PIN confere: é a própria pessoa voltando.
+    // Entrar é melhor que recusar o cadastro e deixá-la sem jogo.
+    else return { ok: true, perfil: r.perfil, jaEra: true };
   }
   let res;
   try {

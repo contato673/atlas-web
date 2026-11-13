@@ -1,12 +1,12 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=17';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=18';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=17';
-import * as api from './api.js?v=17';
+} from './player.js?v=18';
+import * as api from './api.js?v=18';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -81,7 +81,10 @@ const MOTIVOS = {
   sem_servidor: 'O servidor ainda não está ligado: a rota ficou guardada neste aparelho.',
   rede: 'Não deu para falar com o servidor. Confira a internet e tente de novo.',
   rede_rota: 'Não deu para falar com o servidor. A rota ficou guardada e será reenviada sozinha.',
-  apelido_em_uso: 'Esse apelido já está em uso.',
+  apelido_em_uso: 'Esse apelido já tem conta. Volte e use ENTRAR com o mesmo apelido e PIN.',
+  ja_tem_perfil: 'Essa conta já está criada e pronta. Volte e use ENTRAR.',
+  erro: 'O servidor não aceitou o cadastro. Se você já tem conta, volte e use ENTRAR.',
+  dados_invalidos: 'Algum dado do cadastro não foi aceito. Confira o apelido e tente de novo.',
   convite_invalido: 'Código de convite inválido ou já usado.',
   sem_vagas: 'As vagas do teste fechado acabaram.',
   confirmacao_de_email: 'O servidor está exigindo confirmação de e-mail. Desligue essa opção no painel do Supabase.',
@@ -262,6 +265,7 @@ async function concluir() {
   perfil = { ...rascunho, ...r.perfil };
   salvarPerfil(perfil);
   fecharOnboarding();
+  if (r.jaEra) toast(`Essa conta já existia e o PIN confere. Bem-vindo de volta, ${perfil.apelido}.`, 6000);
   await atualizarMapa();
 }
 
@@ -879,18 +883,28 @@ function sessaoVencida() {
   if (quem) { $('ent-nome').value = quem; $('ent-nome').dispatchEvent(new Event('input', { bubbles: true })); }
 }
 
-if (perfil && (!api.temServidor || api.temSessao())) {
+function entrarNoJogo() {
   pintarHud();
-  if (api.temServidor) {
-    api.meuPerfil().then((p) => {
-      if (!p) { sessaoVencida(); return; }
-      perfil = { ...perfil, ...p };
-      salvarPerfil(perfil);
-      aplicarCores(perfil); pintarHud(); atualizarMarcador();
-    });
-  }
+  aplicarCores(perfil);
+  atualizarMarcador();
   atualizarMapa();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
+}
+
+if (perfil && !api.temServidor) {
+  entrarNoJogo();
+} else if (api.temSessao()) {
+  // A sessão do servidor manda. O perfil local é só um atalho: se ele sumiu
+  // (Safari limpa o armazenamento sozinho), buscamos de volta em vez de
+  // mandar a pessoa criar uma conta que já existe.
+  if (perfil) entrarNoJogo();
+  api.meuPerfil().then((p) => {
+    if (!p) { sessaoVencida(); return; }
+    perfil = { ...perfilVazio(), ...(perfil || {}), ...p };
+    salvarPerfil(perfil);
+    if (!ui.onb.hidden) fecharOnboarding();
+    entrarNoJogo();
+  }).catch(() => { if (!perfil) abrirOnboarding(); });
 } else {
   abrirOnboarding();
 }
