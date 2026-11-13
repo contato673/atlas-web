@@ -1,16 +1,16 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=27';
+import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=28';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=27';
-import * as api from './api.js?v=27';
+} from './player.js?v=28';
+import * as api from './api.js?v=28';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, LATINHAS,
-} from './progresso.js?v=27';
+} from './progresso.js?v=28';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -874,7 +874,9 @@ async function atualizarEnergia() {
   pintarEnergia();
 }
 
-$('energia').onclick = async () => {
+// Ligação defensiva: um elemento que falte no HTML não pode derrubar o app
+// inteiro, como derrubou em 13/11 quando este chip não existia na página.
+const aoTocarEnergia = async () => {
   if (!energia) return;
   const turboDePe = energia.turbo_ate && new Date(energia.turbo_ate) > new Date();
   if (turboDePe) {
@@ -903,6 +905,7 @@ $('energia').onclick = async () => {
     } else toast('Não deu para ligar o turbo.', 4000);
   } catch (e) { toast(e.message, 4000); }
 };
+if ($('energia')) $('energia').onclick = aoTocarEnergia;
 
 /* ===================== ficha: território e jogador ===================== */
 function abrirFicha(html) {
