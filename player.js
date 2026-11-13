@@ -3,9 +3,12 @@
 
 export const PLAYER_KEY = 'atlas.player.v1';
 
+// Os ids meridiano/azimute ficaram: sao eles que estao gravados no perfil, no
+// territorio e no placar. Trocar id exigiria migrar as tres coisas, e quem o
+// jogador le e o `nome`. Entao o nome mudou e o id nao.
 export const FACCOES = {
-  meridiano: { nome: 'MERIDIANO', cor: '#2f7bff', clara: '#8fbaff', lema: 'Avanço calculado', corNome: 'Azul' },
-  azimute: { nome: 'AZIMUTE', cor: '#22d97a', clara: '#8cf0bd', lema: 'Pressão constante', corNome: 'Verde' },
+  meridiano: { nome: 'AURORA', cor: '#2f7bff', clara: '#8fbaff', lema: 'Acende e mantém', corNome: 'Azul' },
+  azimute: { nome: 'ZÊNITE', cor: '#22d97a', clara: '#8cf0bd', lema: 'Pressão constante', corNome: 'Verde' },
 };
 
 // Perfis criados antes dos nomes das facções.

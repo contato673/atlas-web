@@ -1,7 +1,7 @@
 {
   "name": "ATLAS — Conquista Territorial",
   "short_name": "ATLAS",
-  "description": "Jogo de conquista territorial por GPS. A cidade é o tabuleiro.",
+  "description": "Jogo de conquista territorial por GPS. A energia se espalhou pela cidade, e só se recolhe a pé.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

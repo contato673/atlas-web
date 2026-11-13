@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=41">
+  <link rel="stylesheet" href="style.css?v=42">
 </head>
 <body>
 
@@ -71,7 +71,7 @@
           <h1>ATLAS</h1>
           <p class="logo-sub">CONQUISTA TERRITORIAL</p>
         </div>
-        <p class="lead">A cidade é o tabuleiro. Percorra um circuito a pé e feche território para a sua equipe.</p>
+        <p class="lead">A rede se partiu. A energia ficou espalhada pela cidade, e só se recolhe a pé. Sua unidade percorre um circuito e drena o território para a sua agência.</p>
       </div>
       <div class="scr-foot col">
         <button class="btn primary" data-go="criar">CRIAR CONTA</button>
@@ -127,19 +127,19 @@
 
     <!-- 3. Facção -->
     <section class="scr" data-scr="faccao" hidden>
-      <div class="scr-head"><span class="passo">Passo 1 de 3</span><h2>Escolha sua facção</h2></div>
+      <div class="scr-head"><span class="passo">Passo 1 de 3</span><h2>Escolha sua agência</h2></div>
       <div class="scr-mid">
         <div class="facs">
           <button class="fac" data-fac="meridiano">
             <span class="fac-bar"></span>
-            <b>MERIDIANO</b><i>Avanço calculado · território azul</i>
+            <b>AURORA</b><i>Acende e mantém · território azul</i>
           </button>
           <button class="fac" data-fac="azimute">
             <span class="fac-bar"></span>
-            <b>AZIMUTE</b><i>Pressão constante · território verde</i>
+            <b>ZÊNITE</b><i>Pressão constante · território verde</i>
           </button>
         </div>
-        <p class="nota">A facção define a cor do seu território no mapa. Não dá vantagem de regra.</p>
+        <p class="nota">A agência define a cor do seu território no mapa. Não dá vantagem de regra.</p>
       </div>
       <div class="scr-foot">
         <button class="btn ghost" data-back="criar">VOLTAR</button>
@@ -151,7 +151,7 @@
     <section class="scr" data-scr="tenis" hidden>
       <div class="scr-head">
         <span class="passo" id="passo-tenis">Passo 2 de 3</span>
-        <div class="tit-linha"><h2>Monte seu personagem</h2><div class="bolsa" id="bolsa" hidden></div></div>
+        <div class="tit-linha"><h2>Monte sua unidade</h2><div class="bolsa" id="bolsa" hidden></div></div>
       </div>
       <div class="scr-mid">
         <div class="palco"><div id="cenario-fundo"></div><div id="preview"></div></div>
@@ -266,6 +266,6 @@
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=41"></script>
+  <script type="module" src="app.js?v=42"></script>
 </body>
 </html>

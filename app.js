@@ -2,20 +2,20 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=41';
+} from './geo.js?v=42';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=41';
-import * as api from './api.js?v=41';
+} from './player.js?v=42';
+import * as api from './api.js?v=42';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
-} from './visual.js?v=41';
+} from './visual.js?v=42';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=41';
+} from './progresso.js?v=42';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -126,26 +126,31 @@ const MOTIVOS = {
 /* ===================== pré-telas ===================== */
 const LORE = [
   {
-    titulo: 'O Levantamento',
-    texto: 'Quando as cidades deixaram de ser medidas por quem as caminhava, elas começaram a esquecer o próprio desenho. '
-      + 'Ruas viraram linhas em um servidor. Praças viraram polígonos sem dono.\n\n'
-      + 'O projeto ATLAS nasceu para refazer esse mapa do único jeito que ninguém consegue falsificar: passo a passo. '
-      + 'Duas equipes saíram a campo com o mesmo caderno: uma para fixar as linhas, outra para abrir os rumos.',
+    titulo: 'A Ruptura',
+    texto: 'A rede contínua de energia se partiu num intervalo de poucas horas, e o que veio depois não foi escassez: '
+      + 'foi dispersão. A carga não sumiu — ela se espalhou.\n\n'
+      + 'Hoje o que sobrou aflora em cápsulas soltas, pelos ramais antigos que correm por baixo das ruas. '
+      + 'É pouco demais em cada ponto e espalhado demais para qualquer central recolher. Só funciona de um jeito: '
+      + 'alguém andando.',
   },
   {
-    titulo: 'A Cisão',
-    texto: 'Com o mapa pronto, o levantamento se partiu em dois.\n\n'
-      + 'MERIDIANO ficou com as linhas. Para eles o mapa pertence a quem o mantém: avanço calculado, '
-      + 'território que se segura. Marcam a cidade de azul.\n\n'
-      + 'AZIMUTE ficou com os rumos. Para eles o mapa pertence a quem o percorre: pressão constante, '
-      + 'território que se toma. Marcam a cidade de verde.\n\n'
-      + 'Nenhum dos dois lados venceu. Por isso a cidade continua em disputa.',
+    titulo: 'As Unidades',
+    texto: 'Por isso o projeto ATLAS deixou de fabricar máquina grande e passou a fabricar unidades de campo: '
+      + 'uma por operador.\n\n'
+      + 'A sua unidade caminha a cidade, recolhe o que encontra e devolve à rede o que junta. '
+      + 'Quem comanda é você. Quem anda é ela.\n\n'
+      + 'Duas agências herdaram o mesmo mandato e disputam o mesmo resíduo. '
+      + 'AURORA acende e mantém: para ela a carga pertence a quem a conserva. Marca a cidade de azul. '
+      + 'ZÊNITE vive da pressão constante: para ela a carga pertence a quem chega primeiro. Marca a cidade de verde.\n\n'
+      + 'Nenhuma das duas está errada. As duas precisam da mesma energia — e é por isso que a cidade segue em disputa.',
   },
   {
     titulo: 'A Regra',
-    texto: 'Um território só muda de lado quando alguém o cerca por inteiro, com as próprias pernas. '
-      + 'Não existe atalho e não existe conquista pela metade.\n\n'
-      + 'O que você fechar com um circuito válido passa a levar o seu nome — até que alguém caminhe mais do que você.',
+    texto: 'A sua unidade não reivindica território: ela o drena. E só consegue drenar quando fecha o perímetro '
+      + 'da área a pé, porque o circuito fechado é literalmente a antena.\n\n'
+      + 'Perímetro aberto não fecha circuito, e circuito aberto não drena nada. Não existe atalho e não existe '
+      + 'conquista pela metade.\n\n'
+      + 'O que você fechar passa a levar o seu nome — até que alguém caminhe mais do que você.',
   },
 ];
 
@@ -833,7 +838,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=41');
+    const mod = await import('./boneco3d.js?v=42');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1255,7 +1260,7 @@ async function abrirRanking() {
       <b>${f.nome}</b><span class="n">${fmtArea(e.area_fisica_m2)}</span>
       <small>${e.pontos.toLocaleString('pt-BR')} pontos competitivos · ${e.conquistas} conquistas · ${e.jogadores} jogadores</small>
     </div>`;
-  }).join('') || '<p class="vazio">Nenhuma equipe pontuou ainda.</p>';
+  }).join('') || '<p class="vazio">Nenhuma agência pontuou ainda.</p>';
 
   $('rank').innerHTML = lista.map((j, i) =>
     linhaRank(j, i, Number(j.creditos), Number(j.creditos).toLocaleString('pt-BR'))).join('');
