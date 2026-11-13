@@ -2,17 +2,17 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=32';
+} from './geo.js?v=33';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=32';
-import * as api from './api.js?v=32';
+} from './player.js?v=33';
+import * as api from './api.js?v=33';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=32';
+} from './progresso.js?v=33';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -617,6 +617,7 @@ async function initMap() {
     atualizarMarcador();
     drawAll();
     if (territorios) map.getSource('terr').setData(territorios);
+    ligarBoneco3d();
   });
 
   if (SIM) map.on('click', (e) => simulate(e.lngLat));
@@ -644,6 +645,8 @@ function atualizarMarcador() {
   }
   marker.getElement().querySelector('.me-shoe').innerHTML =
     avatarSVG({ ...(perfil || perfilVazio()), cor, largura: 54, sombra: false });
+  marker.getElement().classList.toggle('tem3d', !!boneco3d);
+  repintarBoneco3d();
   marker.setLngLat([lastFix.lng, lastFix.lat]);
 }
 
@@ -786,6 +789,81 @@ function levantarPredios() {
       },
     }, antes);
   } catch { /* estilo sem camada de edificação: segue sem os volumes */ }
+}
+
+
+/* ===================== personagem em 3D sobre o mapa ===================== */
+// Tudo aqui é opcional: se o Three.js não carregar, se a placa recusar ou se
+// o aparelho for fraco, o jogo segue com o boneco vetorial de sempre. Nada
+// nesta seção pode derrubar o resto.
+let boneco3d = null;
+let laco3d = 0;
+
+function coresDoBoneco() {
+  const neon = corDoPerfil(perfil);
+  const fac = FACCOES[(perfil && perfil.faccao) || 'meridiano'].cor;
+  const roupa = { basico: '#1b2634', corredor: '#16202c', jaqueta: '#202c3c' }[
+    (perfil && perfil.modelo) || 'basico'] || '#1b2634';
+  return {
+    pele: '#c89a72', roupa, calca: '#1d2836', sapato: '#0e151e',
+    bone: fac, cabelo: '#161e29', detalhe: neon,
+  };
+}
+
+// Tamanho na tela: cresce com a aproximação, como qualquer coisa que está no
+// chão. Travado entre 46 e 160 px para não sumir nem virar outdoor.
+function tamanhoDoBoneco() {
+  const z = mapReady ? map.getZoom() : CAMERA.zoomPadrao;
+  return Math.round(Math.max(46, Math.min(160, 78 * (2 ** (z - CAMERA.zoomPadrao)))));
+}
+
+async function ligarBoneco3d() {
+  if (boneco3d || !mapReady) return;
+  const tela = $('boneco3d');
+  if (!tela) return;
+  try {
+    const mod = await import('./boneco3d.js?v=33');
+    boneco3d = await mod.criarBoneco(tela, coresDoBoneco());
+    tela.hidden = false;
+    if (marker) marker.getElement().classList.add('tem3d');
+    rodar3d();
+  } catch (e) {
+    boneco3d = null;
+    tela.hidden = true;
+    if (marker) marker.getElement().classList.remove('tem3d');
+  }
+}
+
+function rodar3d() {
+  cancelAnimationFrame(laco3d);
+  const passo = () => {
+    laco3d = requestAnimationFrame(passo);
+    if (!boneco3d || !mapReady) return;
+    const tela = $('boneco3d');
+    if (!lastFix || document.visibilityState !== 'visible' || !$('onb').hidden) {
+      tela.style.opacity = '0';
+      return;
+    }
+    const p = map.project([lastFix.lng, lastFix.lat]);
+    const lado = tamanhoDoBoneco();
+    const alto = Math.round(lado * 1.25);
+    if (tela.width !== lado || tela.height !== alto) {
+      tela.style.width = `${lado}px`;
+      tela.style.height = `${alto}px`;
+      boneco3d.dimensionar(lado, alto);
+    }
+    tela.style.opacity = '1';
+    // os pés do boneco ficam no ponto do GPS
+    tela.style.transform = `translate(${Math.round(p.x - lado / 2)}px, ${Math.round(p.y - alto + lado * 0.12)}px)`;
+    const el = marker && marker.getElement();
+    boneco3d.quadro(!!(el && el.classList.contains('andando')),
+      el && el.classList.contains('virado') ? -1 : 1);
+  };
+  passo();
+}
+
+function repintarBoneco3d() {
+  if (boneco3d) { try { boneco3d.pintar(coresDoBoneco()); } catch { /* segue */ } }
 }
 
 /* ===================== latinhas de energia ===================== */

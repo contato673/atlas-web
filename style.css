@@ -617,3 +617,13 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   .marca-lata .lata-sombra,
   .marca-lata .lata-anel { animation: none; }
 }
+
+/* ===================== personagem em 3D ===================== */
+/* Tela transparente por cima do mapa. Não recebe toque: quem recebe é o
+   marcador do mapa embaixo, senão o boneco engoliria o clique nas latinhas. */
+#boneco3d {
+  position: fixed; left: 0; top: 0; z-index: 4;
+  pointer-events: none; will-change: transform;
+}
+/* Com o 3D ligado, o boneco vetorial do marcador sai de cena. */
+.me-marker.tem3d .me-shoe { display: none; }
