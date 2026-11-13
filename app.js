@@ -1,12 +1,12 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=16';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=17';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-  GRATIS, PRECOS, temItem, precoDe, fmtOuro,
-} from './player.js?v=16';
-import * as api from './api.js?v=16';
+  GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
+} from './player.js?v=17';
+import * as api from './api.js?v=17';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -170,6 +170,14 @@ function montarOpcoes() {
       + (meu ? '' : `<em>${fmtOuro(precoDe(item))}</em>`) + '</button>';
   }).join('');
 
+  $('row-cenario').innerHTML = CENARIOS.map((c) => {
+    const item = `cenario:${c.id}`;
+    const meu = temItem(carteira, item);
+    return `<button type="button" data-cenario="${c.id}" data-item="${item}" class="mini ${meu ? '' : 'travado'}" title="${c.nome}">`
+      + `<span class="mini-arte">${cenarioSVG({ id: c.id, cor: corDoPerfil(rascunho), largura: 54 })}</span>`
+      + `<i>${meu ? c.nome : `${fmtOuro(c.custo)} ouro`}</i></button>`;
+  }).join('');
+
   const bolsa = $('bolsa');
   if (carteira) {
     bolsa.hidden = false;
@@ -207,11 +215,13 @@ async function tentarComprar(item, nome) {
 function marcarEscolhas() {
   document.querySelectorAll('[data-modelo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modelo === rascunho.modelo)));
   document.querySelectorAll('[data-cor]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cor === rascunho.cor)));
+  document.querySelectorAll('[data-cenario]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cenario === rascunho.cenario)));
   document.querySelectorAll('[data-fac]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fac === rascunho.faccao)));
 }
 
 function desenharPreview() {
-  $('preview').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 300, brilho: 2.4 });
+  $('cenario-fundo').innerHTML = cenarioSVG({ id: rascunho.cenario, cor: corDoPerfil(rascunho), largura: 300 });
+  $('preview').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 236, brilho: 2.4 });
 }
 
 function desenharResumo() {
@@ -276,6 +286,15 @@ ui.onb.addEventListener('click', (e) => {
     }
     rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return;
   }
+  if (b.dataset.cenario) {
+    const item = `cenario:${b.dataset.cenario}`;
+    if (!temItem(carteira, item)) {
+      const c = CENARIOS.find((x) => x.id === b.dataset.cenario);
+      tentarComprar(item, c.nome).then((ok) => { if (ok) { rascunho.cenario = b.dataset.cenario; marcarEscolhas(); desenharPreview(); } });
+      return;
+    }
+    rascunho.cenario = b.dataset.cenario; marcarEscolhas(); desenharPreview(); return;
+  }
   if (b.dataset.cor) {
     const item = `cor:${b.dataset.cor}`;
     if (!temItem(carteira, item)) {
@@ -317,7 +336,7 @@ ui.onb.addEventListener('click', (e) => {
     if (modoEdicao) {
       perfil = { ...rascunho };
       salvarPerfil(perfil);
-      api.salvarVisual({ modelo: perfil.modelo, cor: perfil.cor });
+      api.salvarVisual({ modelo: perfil.modelo, cor: perfil.cor, cenario: perfil.cenario });
       fecharOnboarding();
       toast('Tênis atualizado.');
       return;

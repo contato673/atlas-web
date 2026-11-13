@@ -193,16 +193,13 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 }
 .campo input:focus { outline: 0; border-color: var(--neon); box-shadow: 0 0 22px color-mix(in srgb, var(--neon) 22%, transparent); }
 
-/* palco do tênis */
-.palco { position: relative; display: grid; place-items: center; padding: 10px 0 24px; }
-.palco-piso {
-  position: absolute; bottom: 10px; width: 74%; height: 54px;
-  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--neon) 30%, transparent), transparent 72%);
-  filter: blur(2px);
-}
-#preview { position: relative; line-height: 0; animation: flutua 3.6s ease-in-out infinite; }
-#preview svg { width: min(78vw, 300px); height: auto; }
-@keyframes flutua { 50% { transform: translateY(-8px); } }
+/* palco do tênis, com o cenário atrás */
+.palco { position: relative; display: grid; place-items: center; padding: 6px 0 14px; }
+#cenario-fundo { position: absolute; inset: 0; display: grid; place-items: center; line-height: 0; }
+#cenario-fundo svg { width: min(78vw, 300px); height: auto; border-radius: 50%; }
+#preview { position: relative; line-height: 0; margin-top: -6px; animation: flutua 3.6s ease-in-out infinite; }
+#preview svg { width: min(62vw, 236px); height: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.6)); }
+@keyframes flutua { 50% { transform: translateY(-7px); } }
 
 .opt-tit { display: block; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .opt-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -403,3 +400,13 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   position: absolute; inset: auto 0 2px 0; text-align: center; font-style: normal;
   font-size: 9px; font-weight: 700; color: #ffc83d; text-shadow: 0 1px 3px #000;
 }
+
+/* cenários na vitrine */
+.cenarios { grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.cenarios button { padding: 5px 3px 7px; }
+.cenarios .mini-arte { display: block; line-height: 0; }
+.cenarios .mini-arte svg { width: 100%; height: auto; border-radius: 50%; }
+.cenarios button i { display: block; font-style: normal; font-size: 8.5px; line-height: 1.2; margin-top: 4px; color: var(--muted); }
+.cenarios button.travado .mini-arte { filter: grayscale(.8) brightness(.55); }
+.cenarios button.travado i { color: #ffc83d; font-weight: 700; }
+.cenarios button[aria-pressed=true] { border-color: var(--neon); background: color-mix(in srgb, var(--neon) 12%, var(--panel-solida)); }
