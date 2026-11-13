@@ -2,17 +2,17 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=39';
+} from './geo.js?v=40';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=39';
-import * as api from './api.js?v=39';
+} from './player.js?v=40';
+import * as api from './api.js?v=40';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=39';
+} from './progresso.js?v=40';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -822,7 +822,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=39');
+    const mod = await import('./boneco3d.js?v=40');
     boneco3d = await mod.criarBoneco(tela, coresDoBoneco());
     tela.hidden = false;
     if (marker) marker.getElement().classList.add('tem3d');
@@ -945,6 +945,9 @@ function desenharLatinhas() {
     if (!m) {
       const el = document.createElement('div');
       el.className = 'marca-lata';
+      // a cor do tipo vai no proprio marcador, porque o brilho de "perto"
+      // tambem precisa dela, nao so o anel
+      el.style.setProperty('--c', (LATINHAS[s.tipo] || LATINHAS.lata).cor);
       el.innerHTML = marcaLatinhaHTML(s.tipo, 42);
       el.onclick = () => pegarLatinha(s);
       m = new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
