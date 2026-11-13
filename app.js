@@ -1,11 +1,12 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=15';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=16';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
-} from './player.js?v=15';
-import * as api from './api.js?v=15';
+  GRATIS, PRECOS, temItem, precoDe, fmtOuro,
+} from './player.js?v=16';
+import * as api from './api.js?v=16';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -40,6 +41,7 @@ let followMe = true;
 let territorios = null;
 let sessaoServidor = null;
 let avisouGps = false;
+let carteira = null;
 
 /* ===================== cores ===================== */
 function aplicarCores(p) {
@@ -153,11 +155,53 @@ function fecharOnboarding() {
 }
 
 function montarOpcoes() {
-  $('row-modelo').innerHTML = MODELOS
-    .map((m) => `<button type="button" data-modelo="${m.id}"><b>${m.nome}</b><i>${m.desc}</i></button>`).join('');
-  $('row-cor').innerHTML = NEONS
-    .map((c) => `<button type="button" data-cor="${c.id}" title="${c.nome}" aria-label="${c.nome}"><span style="background:${c.cor};box-shadow:0 0 16px ${c.cor}"></span></button>`).join('');
+  $('row-modelo').innerHTML = MODELOS.map((m) => {
+    const item = `modelo:${m.id}`;
+    const meu = temItem(carteira, item);
+    return `<button type="button" data-modelo="${m.id}" data-item="${item}" class="${meu ? '' : 'travado'}">`
+      + `<b>${m.nome}</b><i>${meu ? m.desc : `${fmtOuro(precoDe(item))} ouro`}</i></button>`;
+  }).join('');
+
+  $('row-cor').innerHTML = NEONS.map((c) => {
+    const item = `cor:${c.id}`;
+    const meu = temItem(carteira, item);
+    return `<button type="button" data-cor="${c.id}" data-item="${item}" class="${meu ? '' : 'travado'}" title="${c.nome}" aria-label="${c.nome}">`
+      + `<span style="background:${c.cor};box-shadow:0 0 16px ${c.cor}"></span>`
+      + (meu ? '' : `<em>${fmtOuro(precoDe(item))}</em>`) + '</button>';
+  }).join('');
+
+  const bolsa = $('bolsa');
+  if (carteira) {
+    bolsa.hidden = false;
+    bolsa.innerHTML = `<b>${fmtOuro(carteira.ouro)}</b><span>ouro</span>`;
+  } else {
+    bolsa.hidden = true;
+  }
   marcarEscolhas();
+}
+
+async function tentarComprar(item, nome) {
+  if (!carteira) { toast('A loja ainda não está ligada no servidor.'); return false; }
+  const preco = precoDe(item);
+  if (carteira.ouro < preco) {
+    toast(`Faltam ${fmtOuro(preco - carteira.ouro)} de ouro para ${nome}. Conquiste mais território.`, 5000);
+    return false;
+  }
+  const sim = await ask({
+    title: `Comprar ${nome}?`,
+    text: `Custa ${fmtOuro(preco)} de ouro.\nVocê tem ${fmtOuro(carteira.ouro)}.`,
+    ok: 'COMPRAR', cancel: 'AGORA NÃO',
+  });
+  if (!sim) return false;
+  const r = await api.comprarItem(item);
+  if (!r || !r.ok) {
+    toast(r && r.motivo === 'sem_ouro' ? 'Ouro insuficiente.' : 'Não deu para comprar agora.');
+    return false;
+  }
+  carteira = await api.buscarCarteira();
+  montarOpcoes();
+  toast(`${nome} desbloqueado.`);
+  return true;
 }
 
 function marcarEscolhas() {
@@ -223,8 +267,24 @@ ui.onb.addEventListener('click', (e) => {
     document.querySelector('[data-scr=faccao] [data-go]').disabled = false;
     return;
   }
-  if (b.dataset.modelo) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return; }
-  if (b.dataset.cor) { rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); return; }
+  if (b.dataset.modelo) {
+    const item = `modelo:${b.dataset.modelo}`;
+    if (!temItem(carteira, item)) {
+      const m = MODELOS.find((x) => x.id === b.dataset.modelo);
+      tentarComprar(item, m.nome).then((ok) => { if (ok) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); } });
+      return;
+    }
+    rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return;
+  }
+  if (b.dataset.cor) {
+    const item = `cor:${b.dataset.cor}`;
+    if (!temItem(carteira, item)) {
+      const c = NEONS.find((x) => x.id === b.dataset.cor);
+      tentarComprar(item, c.nome).then((ok) => { if (ok) { rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); } });
+      return;
+    }
+    rascunho.cor = b.dataset.cor; aplicarCores(rascunho); marcarEscolhas(); desenharPreview(); return;
+  }
 
   if (b.id === 'btn-entrar-conta') {
     b.disabled = true; b.textContent = 'ENTRANDO…';
@@ -292,7 +352,10 @@ $('ent-pin').addEventListener('input', (e) => {
   validarEntrar();
 });
 
-ui.perfil.onclick = () => abrirOnboarding({ edicao: true });
+ui.perfil.onclick = async () => {
+  carteira = await api.buscarCarteira();
+  abrirOnboarding({ edicao: true });
+};
 
 /* ===================== utilidades de interface ===================== */
 const fmtDist = (m) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`);
@@ -706,10 +769,12 @@ ui.finish.onclick = async () => {
     aviso();
     await ask({
       title: 'Território conquistado',
-      numeros: [[fmtArea(r.area_terreno), 'área tomada'], [Number(r.creditos).toLocaleString('pt-BR'), 'créditos']],
+      numeros: [[fmtArea(r.area_terreno), 'área tomada'], [Number(r.creditos).toLocaleString('pt-BR'), 'créditos'],
+        ...(carteira ? [[`+${fmtOuro(Math.floor(r.area_terreno / 1000))}`, 'ouro']] : [])],
       text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
       ok: 'VOLTAR AO MAPA',
     });
+    carteira = await api.buscarCarteira();
     await atualizarMapa();
     return;
   }

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -145,7 +145,10 @@
 
     <!-- 4. Tênis -->
     <section class="scr" data-scr="tenis" hidden>
-      <div class="scr-head"><span class="passo" id="passo-tenis">Passo 2 de 3</span><h2>Monte seu tênis</h2></div>
+      <div class="scr-head">
+        <span class="passo" id="passo-tenis">Passo 2 de 3</span>
+        <div class="tit-linha"><h2>Monte seu tênis</h2><div class="bolsa" id="bolsa" hidden></div></div>
+      </div>
       <div class="scr-mid">
         <div class="palco"><div class="palco-piso"></div><div id="preview"></div></div>
         <div class="opt">
@@ -232,6 +235,6 @@
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=15"></script>
+  <script type="module" src="app.js?v=16"></script>
 </body>
 </html>

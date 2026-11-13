@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=15';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=16';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -208,6 +208,20 @@ export async function buscarMapa() {
   if (!temServidor || !temSessao()) return { type: 'FeatureCollection', features: [] };
   try { return await chamar('/rest/v1/rpc/mapa', { metodo: 'POST', corpo: {} }); }
   catch { return { type: 'FeatureCollection', features: [] }; }
+}
+
+/* ===================== ouro ===================== */
+// Devolve null quando o servidor ainda não tem a economia instalada.
+export async function buscarCarteira() {
+  if (!temServidor || !temSessao()) return null;
+  try { return await chamar('/rest/v1/rpc/carteira', { metodo: 'POST', corpo: {} }); }
+  catch { return null; }
+}
+
+export async function comprarItem(item) {
+  if (!temServidor || !temSessao()) return { ok: false, motivo: 'sem_servidor' };
+  try { return await chamar('/rest/v1/rpc/comprar', { metodo: 'POST', corpo: { p_item: item } }); }
+  catch (e) { return { ok: false, motivo: 'rede', detalhe: e.message }; }
 }
 
 export async function buscarRanking() {

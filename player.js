@@ -29,29 +29,34 @@ export const MODELOS = [
 // Geometria de cada modelo, em um quadro de 64 x 40 (perfil, virado para a direita).
 const FORMAS = {
   runner: {
-    sola: 'M5.6,26.2 L58.6,26.2 C61.6,26.2 62.2,28.4 61.4,30.8 C60.6,33 58,33.6 55,33.6 L10,33.6 C6.4,33.6 4.6,32.4 4.4,29.6 C4.2,27.4 4.6,26.2 5.6,26.2 Z',
-    entressola: 'M5,29.3 L61.6,29.3',
-    cano: 'M8.5,26.5 L8.5,14.5 C8.5,10.5 10.5,9 14,8.8 L19.5,8.5 C20.6,8.5 21.4,9 22.4,10 L27,13.2 L36,15.6 L47,18 C53,19.6 56.6,21.6 58.6,24.4 C59.6,25.8 59.2,26.5 58,26.5 Z',
-    painel: 'M12.5,24.4 C20,23.4 27,21 33,17.8 C38,15.2 43,15.4 47.5,17.6',
-    cadarcos: [[15, 10.6, 17.6, 14.6], [18.6, 11.8, 21, 16], [22.2, 13.2, 24.4, 17.4]],
-    calcanhar: 'M7.6,10.4 L10.4,10.4 L10.4,14.6 L7.6,14.6 Z',
+    contorno: 'M8.6,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 L8.2,16 C8.2,12.2 10,10.6 13.4,10.2 L18.6,9.6 C21,9.4 21.8,10.8 21.8,13 L22.6,17.4 C28,17.9 36,18.9 44,20.4 C50,21.5 55,22.6 58,24.6 C60.8,26.4 62,28.6 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 Z',
+    sola: 'M8.2,28.6 C20,30.2 40,30 61.3,27.4 C62,28.9 61.6,29.9 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 L12.5,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 Z',
+    entressola: 'M8.3,28.8 C20,30.4 40,30.2 61,27.6',
+    colarinho: 'M15.8,10.3 C18.6,9.7 21,10.2 21.8,12.3 C20.2,13.2 17.6,13.6 15.8,13 C14.5,12.5 14.5,10.6 15.8,10.3 Z',
+    lingua: 'M21.9,12.9 L25,11.8 L26.2,17 L22.7,17.5 Z',
+    painel: 'M13.8,25.6 C20.4,24.4 27.4,22.2 33.8,20.2 C39,18.7 44.4,18.7 48,20',
+    cadarcos: [[25, 13.3, 26.8, 16.9], [27.9, 14.3, 29.5, 17.7], [30.7, 15.3, 32.1, 18.5]],
+    calcanhar: 'M8.9,12.4 L11.3,12.4 L11.3,20 L8.9,20 Z',
   },
   hitop: {
-    sola: 'M5.6,26.2 L58.6,26.2 C61.6,26.2 62.2,28.4 61.4,30.8 C60.6,33 58,33.6 55,33.6 L10,33.6 C6.4,33.6 4.6,32.4 4.4,29.6 C4.2,27.4 4.6,26.2 5.6,26.2 Z',
-    entressola: 'M5,29.3 L61.6,29.3',
-    cano: 'M8.5,26.5 L8.5,9.6 C8.5,5.2 11,3.8 14.6,3.8 L18,3.8 C19.8,3.8 20.6,4.8 20.6,7 L20.6,11.8 L27,13.6 L36,15.8 L47,18 C53,19.6 56.6,21.6 58.6,24.4 C59.6,25.8 59.2,26.5 58,26.5 Z',
-    painel: 'M12.4,24.4 C20,23.4 27,21.4 32,18.4 C37,15.6 43,15.6 47.5,17.6',
-    cadarcos: [[12.6, 8.6, 19.2, 9.2], [12.6, 12.4, 20, 12.8], [13, 16, 21.6, 15.6]],
-    calcanhar: 'M9.4,5.6 C9.4,5.6 12,4.9 17.4,5.1',
-    canoAberto: true,
+    contorno: 'M8.6,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 L8.2,9 C8.2,5.2 10.2,3.6 13.8,3.5 L18.8,3.5 C21.3,3.5 22.1,5.2 22.1,7.6 L22.1,13.2 L22.7,17.5 C28,18 36,19 44,20.5 C50,21.6 55,22.7 58,24.7 C60.8,26.5 62,28.6 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 Z',
+    sola: 'M8.2,28.6 C20,30.2 40,30 61.3,27.4 C62,28.9 61.6,29.9 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 L12.5,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 Z',
+    entressola: 'M8.3,28.8 C20,30.4 40,30.2 61,27.6',
+    colarinho: 'M9.6,5 C13,3.3 18.4,3.3 21.6,5 C19.4,7 11.8,7.2 9.6,5 Z',
+    lingua: 'M22.2,7.8 L25.2,6.7 L26.2,16.8 L22.7,17.4 Z',
+    painel: 'M13.8,25.6 C20.4,24.4 27.4,22.2 33.8,20.2 C39,18.7 44.4,18.7 48,20',
+    cadarcos: [[12.4, 9, 21.7, 9.4], [12.4, 12.6, 21.9, 13], [12.8, 16.2, 22.4, 16.4]],
+    calcanhar: 'M8.9,19 L11.3,19 L11.3,25.6 L8.9,25.6 Z',
   },
   chunky: {
-    sola: 'M4.6,22.6 L58.6,22.6 C62.4,22.6 63,25.6 62.2,29.6 C61.4,33.6 58,34.8 54,34.8 L9.5,34.8 C5,34.8 3.2,33 3.2,29.4 C3.2,25.4 3.6,22.6 4.6,22.6 Z',
-    entressola: 'M3.6,27.6 L62.6,27.6',
-    cano: 'M9.5,23 L9.5,13 C9.5,9.5 11.5,8 15,7.8 L20.5,7.5 C21.6,7.5 22.4,8 23.4,9 L28,12.4 L37,14.8 L47.5,17 C53,18.4 56,19.8 57.6,21.8 C58.6,23 58.2,23 57,23 Z',
-    painel: 'M13.4,21 C21,20 28,18 33,15.6 C38,13.2 43,13.4 47.5,15.6',
-    cadarcos: [[16, 9.6, 18.6, 13.4], [19.6, 10.8, 22, 14.8], [23.2, 12.2, 25.4, 16.2]],
-    calcanhar: 'M8.6,9.4 L11.4,9.4 L11.4,13.6 L8.6,13.6 Z',
+    contorno: 'M8,34.9 C8.4,34.9 6.4,33.4 6.4,30.6 L6.4,14 C6.4,10.2 8.4,8.6 12,8.2 L18.2,7.5 C20.8,7.3 21.9,8.8 21.9,11.2 L22.7,15.6 C28,16.1 36,17.1 44.4,18.6 C50.4,19.7 55.6,20.6 59,22.4 C62.4,24.2 64.2,27.4 62.6,30.6 C61,33.4 56.6,34.8 51,34.9 Z',
+    sola: 'M6.4,26.6 C20,28.8 42,28.6 62.4,24.6 C64.4,26.6 64.2,28.6 62.6,30.6 C61,33.4 56.6,34.8 51,34.9 L11.6,34.9 C8.4,34.9 6.4,33.4 6.4,30.6 Z',
+    entressola: 'M6.5,26.8 C20,29 42,28.8 62.2,24.8',
+    colarinho: 'M15.6,8.2 C18.6,7.6 21.1,8.1 21.9,10.4 C20.2,11.4 17.4,11.8 15.6,11.2 C14.2,10.6 14.2,8.5 15.6,8.2 Z',
+    lingua: 'M22,11 L25.2,9.9 L26.4,15.3 L22.8,15.8 Z',
+    painel: 'M12.4,23.2 C19.4,22 26.8,19.8 33.6,17.8 C39,16.3 44.8,16.3 48.6,17.6',
+    cadarcos: [[25.1, 11.4, 26.9, 15.1], [28, 12.4, 29.6, 15.9], [30.8, 13.4, 32.2, 16.7]],
+    calcanhar: 'M7.2,10.4 L9.6,10.4 L9.6,18.4 L7.2,18.4 Z',
   },
 };
 
@@ -68,9 +73,7 @@ export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'merid
   const cadarcos = f.cadarcos
     .map(([x1, y1, x2, y2]) => `<path d="M${x1},${y1} L${x2},${y2}" stroke="${corFaccao}" stroke-width="1.5" stroke-linecap="round" opacity=".95"/>`)
     .join('');
-  const calcanhar = f.canoAberto
-    ? `<path d="${f.calcanhar}" fill="none" stroke="${corFaccao}" stroke-width="1.6" stroke-linecap="round"/>`
-    : `<path d="${f.calcanhar}" fill="${corFaccao}" opacity=".9"/>`;
+  const calcanhar = `<path d="${f.calcanhar}" fill="${corFaccao}" opacity=".85"/>`;
 
   return `<svg viewBox="0 0 66 38" width="${largura}" height="${(largura * 38) / 66}" aria-hidden="true">
   <defs>
@@ -86,12 +89,15 @@ export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'merid
     </filter>
   </defs>
   <g filter="url(#luz${n})">
-    <path d="${f.sola}" fill="url(#sola${n})"/>
-    <path d="${f.entressola}" stroke="#05080c" stroke-width="1.1" opacity=".65"/>
-    <path d="${f.cano}" fill="url(#corpo${n})" stroke="${cor}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${f.contorno}" fill="url(#corpo${n})"/>
+    <path d="${f.sola}" fill="url(#sola${n})" opacity=".92"/>
+    <path d="${f.entressola}" fill="none" stroke="#05080c" stroke-width="1.2" opacity=".7"/>
+    <path d="${f.contorno}" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="${f.lingua}" fill="#0a1018" stroke="${cor}" stroke-width="1.1" stroke-linejoin="round" opacity=".95"/>
+    <path d="${f.colarinho}" fill="#05080c" stroke="${cor}" stroke-width="1.1" opacity=".9"/>
     ${cadarcos}
     ${calcanhar}
-    <path d="${f.painel}" fill="none" stroke="${cor}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="${f.painel}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
   </g>
 </svg>`;
 }
@@ -155,3 +161,24 @@ export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'meridiano', 
   </g>
 </svg>`;
 }
+
+/* ===================== economia ===================== */
+// O que todo jogador já começa tendo. O resto se compra com ouro.
+export const GRATIS = ['modelo:runner', 'cor:ciano', 'cor:lima'];
+
+// Preços espelham a tabela `loja` do servidor; aqui servem para mostrar na tela.
+export const PRECOS = {
+  'cor:roxo': 150,
+  'cor:violeta': 150,
+  'cor:laranja': 150,
+  'cor:coral': 150,
+  'modelo:hitop': 600,
+  'modelo:chunky': 900,
+};
+
+export const temItem = (carteira, item) =>
+  GRATIS.includes(item) || Boolean(carteira && (carteira.itens || []).includes(item));
+
+export const precoDe = (item) => PRECOS[item] || 0;
+
+export const fmtOuro = (n) => Math.floor(Number(n) || 0).toLocaleString('pt-BR');

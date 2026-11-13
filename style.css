@@ -384,3 +384,22 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   margin: 12px auto 0; padding: 8px; background: none; border: 0; cursor: pointer;
   font: inherit; font-size: 12.5px; color: var(--muted); text-decoration: underline;
 }
+
+/* ===================== ouro e vitrine ===================== */
+.tit-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bolsa {
+  display: flex; align-items: baseline; gap: 5px; padding: 6px 12px;
+  background: var(--panel); border: 1px solid #6b5a1e; border-left: 2px solid #ffc83d;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.bolsa b { font-family: Orbitron, sans-serif; font-size: 14px; color: #ffc83d; font-variant-numeric: tabular-nums; }
+.bolsa span { font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+
+.opt-row button.travado { opacity: .55; border-style: dashed; }
+.opt-row button.travado b { color: var(--muted); }
+.opt-row button.travado i { color: #ffc83d; font-weight: 700; }
+.cores button.travado span { filter: grayscale(.75) brightness(.6); box-shadow: none !important; }
+.cores button.travado em {
+  position: absolute; inset: auto 0 2px 0; text-align: center; font-style: normal;
+  font-size: 9px; font-weight: 700; color: #ffc83d; text-shadow: 0 1px 3px #000;
+}
