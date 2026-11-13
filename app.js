@@ -1,16 +1,16 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=26';
+import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=27';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=26';
-import * as api from './api.js?v=26';
+} from './player.js?v=27';
+import * as api from './api.js?v=27';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, LATINHAS,
-} from './progresso.js?v=26';
+} from './progresso.js?v=27';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -1335,7 +1335,12 @@ ui.finish.onclick = async () => {
       title: 'Território conquistado',
       numeros: [[fmtArea(r.area_terreno), 'área tomada'], [Number(r.creditos).toLocaleString('pt-BR'), 'créditos'],
         ...(carteira ? [[`+${fmtOuro(Math.floor(r.area_terreno / 1000))}`, 'ouro']] : [])],
-      text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
+      text: resumo
+        + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : '')
+        + (r.faltou_carga
+          ? '\n\nTinha território inimigo dentro do seu circuito, mas você estava sem CARGA. '
+            + 'Ele ficou protegido e você levou só o terreno neutro. Pegue latinhas pela cidade para ter munição.'
+          : (r.carga != null && tomadas.length ? `\n\nGastou 1 de carga. Restam ${r.carga}.` : '')),
       ok: 'VOLTAR AO MAPA',
       extra: temFoto ? {
         rotulo: 'FOTO DO LUGAR',
