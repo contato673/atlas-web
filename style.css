@@ -410,3 +410,81 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .cenarios button.travado .mini-arte { filter: grayscale(.8) brightness(.55); }
 .cenarios button.travado i { color: #ffc83d; font-weight: 700; }
 .cenarios button[aria-pressed=true] { border-color: var(--neon); background: color-mix(in srgb, var(--neon) 12%, var(--panel-solida)); }
+
+/* ===================== nível no HUD ===================== */
+.hud-nivel { display: block; line-height: 0; margin-right: 2px; }
+.hud-nivel svg { display: block; }
+.hud-xp {
+  display: block; width: 100%; height: 3px; margin-top: 4px;
+  background: rgba(255,255,255,.12); overflow: hidden;
+}
+.hud-xp s {
+  display: block; height: 100%; width: 0; background: var(--neon);
+  box-shadow: 0 0 6px var(--neon); transition: width .5s ease;
+}
+
+/* ===================== progresso no painel ===================== */
+.meu-prog {
+  display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center;
+  padding: 12px; margin-bottom: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 2px solid var(--neon);
+}
+.meu-prog .anel-g { line-height: 0; }
+.meu-prog b { font-family: Orbitron, sans-serif; font-size: 13px; letter-spacing: .06em; }
+.meu-prog .barra { height: 5px; margin: 7px 0 6px; background: rgba(255,255,255,.1); }
+.meu-prog .barra s { display: block; height: 100%; background: var(--neon); box-shadow: 0 0 8px var(--neon); }
+.meu-prog small { display: block; font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+.meu-prog .fogo { color: #ff8a1f; font-weight: 700; }
+
+/* ===================== abas ===================== */
+.abas { display: flex; gap: 6px; margin: 4px 0 10px; }
+.aba {
+  flex: 1; padding: 8px 4px; font: inherit; font-size: 10px; font-weight: 700;
+  letter-spacing: .14em; color: var(--muted); cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-bottom-width: 2px;
+}
+.aba.on { color: var(--text); border-bottom-color: var(--neon); background: rgba(255,255,255,.03); }
+
+/* ===================== estante de medalhas ===================== */
+.estante { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 8px; }
+.med {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px; background: rgba(255,255,255,.02); border: 1px solid var(--line);
+  text-align: center; cursor: pointer;
+}
+.med svg { display: block; }
+.med span { font-size: 9px; letter-spacing: .06em; color: var(--muted); line-height: 1.2; }
+.med.ganha span { color: var(--text); }
+
+/* ===================== ficha ===================== */
+#ficha {
+  position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end;
+  background: rgba(2,4,7,.72); backdrop-filter: blur(3px);
+}
+.ficha-card {
+  position: relative; width: 100%; max-height: 82vh; overflow-y: auto;
+  padding: 18px 16px calc(env(safe-area-inset-bottom) + 20px);
+  background: var(--bg); border-top: 2px solid var(--neon);
+  box-shadow: 0 -18px 50px rgba(0,0,0,.6);
+}
+#ficha-fechar {
+  position: absolute; top: 10px; right: 10px; width: 34px; height: 34px;
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  font-size: 15px; cursor: pointer;
+}
+.ficha-tit { font-family: Orbitron, sans-serif; font-size: 15px; letter-spacing: .08em; margin: 0 0 2px; }
+.ficha-sub { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+.ficha-donos { list-style: none; margin: 0 0 6px; padding: 0; }
+.ficha-donos li {
+  display: flex; align-items: baseline; gap: 10px; padding: 9px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.ficha-donos .nm { flex: 1; font-weight: 700; letter-spacing: .04em; }
+.ficha-donos .m2 { font-family: Orbitron, sans-serif; font-size: 12px; }
+.ficha-donos .pc { font-size: 11px; color: var(--muted); min-width: 40px; text-align: right; }
+.ficha-perfil { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.ficha-arte { position: relative; width: 108px; height: 108px; flex: none; }
+.ficha-arte .cen { position: absolute; inset: 0; line-height: 0; }
+.ficha-arte .ten { position: absolute; inset: 14px; display: grid; place-items: center; }
+.ficha-arte .ten svg { width: 100%; height: auto; }
+#m-arte { display: grid; place-items: center; margin-bottom: 10px; line-height: 0; }

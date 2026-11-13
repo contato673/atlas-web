@@ -242,3 +242,27 @@ export async function buscarPlacar() {
   try { return await chamar('/rest/v1/placar_equipes?select=*') || []; }
   catch { return []; }
 }
+
+export async function buscarProgresso() {
+  if (!temServidor || !temSessao()) return null;
+  try { return await chamar('/rest/v1/rpc/progresso', { metodo: 'POST', corpo: {} }); }
+  catch { return null; }
+}
+
+export async function buscarEstante(apelido) {
+  if (!temServidor || !temSessao()) return null;
+  try { return await chamar('/rest/v1/rpc/estante', { metodo: 'POST', corpo: { p_apelido: apelido } }); }
+  catch { return null; }
+}
+
+export async function buscarSemana() {
+  if (!temServidor || !temSessao()) return [];
+  try { return (await chamar('/rest/v1/placar_semana?select=*&limit=20')) || []; }
+  catch { return []; }
+}
+
+export async function buscarCatalogo() {
+  if (!temServidor || !temSessao()) return [];
+  try { return (await chamar('/rest/v1/medalhas?select=*&order=ordem')) || []; }
+  catch { return []; }
+}

@@ -24,8 +24,11 @@
 
   <header id="top">
     <button id="btn-perfil" class="hud-id" type="button">
+      <span class="hud-nivel" id="hud-nivel"></span>
       <span class="hud-shoe" id="hud-shoe"></span>
-      <span class="hud-txt"><b id="hud-nome">—</b><i id="hud-fac">—</i></span>
+      <span class="hud-txt"><b id="hud-nome">—</b><i id="hud-fac">—</i>
+        <span class="hud-xp" id="hud-xp" hidden><s id="hud-xp-barra"></s></span>
+      </span>
     </button>
     <div id="gps" class="chip">GPS <span>aguardando</span></div>
   </header>
@@ -217,8 +220,17 @@
         <button id="painel-fechar" type="button" aria-label="Fechar">✕</button>
       </div>
       <div class="placar" id="placar"></div>
-      <span class="opt-tit">Ranking individual — por créditos ativos</span>
+
+      <div class="meu-prog" id="meu-prog" hidden></div>
+
+      <div class="abas" id="abas">
+        <button class="aba on" data-aba="total" type="button">TOTAL</button>
+        <button class="aba" data-aba="semana" type="button">SEMANA</button>
+        <button class="aba" data-aba="medalhas" type="button">MEDALHAS</button>
+      </div>
+      <span class="opt-tit" id="rank-tit">Ranking individual — por créditos ativos</span>
       <ol class="rank" id="rank"></ol>
+      <div class="estante" id="minhas-medalhas" hidden></div>
       <p class="nota" id="rank-nota"></p>
     </div>
   </div>
@@ -226,13 +238,23 @@
   <!-- ===================== DIÁLOGOS ===================== -->
   <div id="modal" hidden>
     <div class="card">
+      <div id="m-arte" hidden></div>
       <h2 id="m-title"></h2>
       <p id="m-text"></p>
       <div class="num-destaque" id="m-num" hidden></div>
       <div class="row">
         <button id="m-cancel" class="btn ghost"></button>
+        <button id="m-extra" class="btn ghost" hidden></button>
         <button id="m-ok" class="btn primary"></button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== FICHA (território ou jogador) ===================== -->
+  <div id="ficha" hidden>
+    <div class="ficha-card">
+      <button id="ficha-fechar" type="button" aria-label="Fechar">✕</button>
+      <div id="ficha-corpo"></div>
     </div>
   </div>
 

@@ -7,6 +7,9 @@ import {
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
 } from './player.js?v=18';
 import * as api from './api.js?v=18';
+import {
+  anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
+} from './progresso.js?v=18';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -42,6 +45,10 @@ let territorios = null;
 let sessaoServidor = null;
 let avisouGps = false;
 let carteira = null;
+let progresso = null;
+let catalogo = null;
+let abaRank = 'total';
+const AREA_KEY = 'atlas.area_ativa.v1';
 
 /* ===================== cores ===================== */
 function aplicarCores(p) {
@@ -55,6 +62,17 @@ function pintarHud() {
   ui.hudShoe.innerHTML = sneakerSVG({ ...perfil, cor: corDoPerfil(perfil), largura: 34, brilho: 1 });
   ui.hudNome.textContent = perfil.apelido;
   ui.hudFac.textContent = FACCOES[perfil.faccao].nome;
+  pintarNivel();
+}
+
+function pintarNivel() {
+  const anel = $('hud-nivel'); const barra = $('hud-xp'); const dentro = $('hud-xp-barra');
+  if (!anel) return;
+  if (!progresso || !progresso.ok) { anel.innerHTML = ''; barra.hidden = true; return; }
+  const pct = Math.min(1, progresso.xp_no_nivel / Math.max(progresso.xp_do_nivel, 1));
+  anel.innerHTML = anelNivel({ nivel: progresso.nivel, pct, cor: corDoPerfil(perfil), tam: 34 });
+  barra.hidden = false;
+  dentro.style.width = `${(pct * 100).toFixed(1)}%`;
 }
 
 /* ===================== contas (por enquanto, só neste aparelho) ===================== */
@@ -421,8 +439,20 @@ function banner(msg) {
   ui.banner.hidden = !msg;
 }
 
-function ask({ title, text, ok, cancel, danger, numeros }) {
+function ask({ title, text, ok, cancel, danger, numeros, arte, extra }) {
   return new Promise((resolve) => {
+    const bArte = $('m-arte');
+    bArte.hidden = !arte;
+    bArte.innerHTML = arte || '';
+    const bEx = $('m-extra');
+    bEx.hidden = !extra;
+    if (extra) {
+      bEx.textContent = extra.rotulo;
+      bEx.onclick = async () => {
+        bEx.disabled = true;
+        try { await extra.acao(); } finally { bEx.disabled = false; }
+      };
+    } else bEx.onclick = null;
     ui.mTitle.textContent = title;
     ui.mText.textContent = text;
     const bloco = $('m-num');
@@ -433,7 +463,11 @@ function ask({ title, text, ok, cancel, danger, numeros }) {
     ui.mCancel.textContent = cancel || '';
     ui.mCancel.hidden = !cancel;
     ui.modal.hidden = false;
-    const close = (v) => { ui.modal.hidden = true; ui.mOk.onclick = ui.mCancel.onclick = null; resolve(v); };
+    const close = (v) => {
+      ui.modal.hidden = true;
+      ui.mOk.onclick = ui.mCancel.onclick = $('m-extra').onclick = null;
+      resolve(v);
+    };
     ui.mOk.onclick = () => close(true);
     ui.mCancel.onclick = () => close(false);
   });
@@ -544,11 +578,9 @@ async function initMap() {
     map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 11, 'line-opacity': 0.22, 'line-blur': 3 } });
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': corDoPerfil(perfil), 'line-width': 4 } });
 
-    map.on('click', 'terr-fill', (e) => {
-      const p = e.features[0].properties;
-      const donos = typeof p.donos === 'string' ? JSON.parse(p.donos) : (p.donos || []);
-      toast(`${FACCOES[p.faccao] ? FACCOES[p.faccao].nome : p.faccao} · ${Number(p.area).toLocaleString('pt-BR')} m²\n${donos.join(', ')}`, 5000);
-    });
+    map.on('click', 'terr-fill', (e) => abrirTerritorio(e.features[0].properties));
+    map.on('mouseenter', 'terr-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'terr-fill', () => { map.getCanvas().style.cursor = ''; });
 
     mapReady = true;
     atualizarMarcador();
@@ -601,6 +633,148 @@ function drawAll() {
   map.setPaintProperty('zone-fill', 'fill-opacity', session.canFinish ? 0.3 : 0.14);
 }
 
+
+/* ===================== ficha: território e jogador ===================== */
+function abrirFicha(html) {
+  $('ficha-corpo').innerHTML = html;
+  $('ficha').hidden = false;
+}
+$('ficha-fechar').onclick = () => { $('ficha').hidden = true; };
+$('ficha').addEventListener('click', (e) => { if (e.target.id === 'ficha') $('ficha').hidden = true; });
+$('ficha-corpo').addEventListener('click', (e) => {
+  const alvo = e.target.closest('[data-jog]');
+  if (alvo) abrirJogador(alvo.dataset.jog);
+});
+
+const cardMedalha = (m, ganha = true) => `<div class="med ${ganha ? 'ganha' : ''}" data-med="${m.codigo}">
+  ${medalhaSVG({ codigo: m.codigo, raridade: m.raridade, tam: 48, ganha })}
+  <span>${m.nome}</span></div>`;
+
+function abrirTerritorio(props) {
+  let donos = props.donos;
+  if (typeof donos === 'string') { try { donos = JSON.parse(donos); } catch { donos = []; } }
+  donos = Array.isArray(donos) ? donos : [];
+  const area = Number(props.area) || 0;
+  const f = FACCOES[props.faccao] || FACCOES.meridiano;
+  const linhas = donos.map((d) => {
+    const nome = (d && d.apelido) || String(d);
+    const a = Number(d && d.area) || 0;
+    const pc = area > 0 && a > 0 ? `${Math.max(1, Math.round((a / area) * 100))}%` : '';
+    return `<li><span class="nm" data-jog="${nome}">${nome}</span>
+      <span class="m2">${a > 0 ? fmtArea(a) : ''}</span><span class="pc">${pc}</span></li>`;
+  }).join('');
+  abrirFicha(`<h3 class="ficha-tit">${fmtArea(area)}</h3>
+    <p class="ficha-sub" style="color:${f.cor}">Bloco ${f.nome}</p>
+    <ul class="ficha-donos">${linhas || '<li>Território sem dono registrado.</li>'}</ul>
+    <p class="nota">Toque num apelido para ver o perfil e as medalhas.</p>`);
+}
+
+async function abrirJogador(apelido) {
+  abrirFicha('<p class="nota">Carregando…</p>');
+  const e = await api.buscarEstante(apelido);
+  if (!e || !e.apelido) { abrirFicha('<p class="nota">Não deu para carregar esse perfil.</p>'); return; }
+  const cor = (NEONS.find((n) => n.id === e.cor) || NEONS[0]).cor;
+  const f = FACCOES[e.faccao] || FACCOES.meridiano;
+  const meds = e.medalhas || [];
+  abrirFicha(`<div class="ficha-perfil">
+      <div class="ficha-arte">
+        <div class="cen">${cenarioSVG({ id: e.cenario || 'noturno', cor, largura: 108 })}</div>
+        <div class="ten">${sneakerSVG({ modelo: e.modelo, cor, faccao: e.faccao, largura: 78, brilho: 1.4 })}</div>
+      </div>
+      <div>
+        <h3 class="ficha-tit">${e.apelido}</h3>
+        <p class="ficha-sub" style="color:${f.cor}">${f.nome} · Nível ${e.nivel}</p>
+      </div>
+    </div>
+    <span class="opt-tit">Medalhas — ${meds.length}</span>
+    <div class="estante">${meds.map((m) => cardMedalha(m, true)).join('')
+      || '<p class="nota">Nenhuma medalha ainda.</p>'}</div>`);
+}
+
+/* ===================== progresso, medalhas, ofensiva ===================== */
+async function atualizarProgresso({ celebrar = true } = {}) {
+  const p = await api.buscarProgresso();
+  if (!p || !p.ok) return;
+  const novas = celebrar ? (p.novas || []) : [];
+  const subiu = progresso && p.nivel > progresso.nivel;
+  progresso = p;
+  pintarNivel();
+  avisarPerdaDeTerritorio(p);
+  if (subiu) {
+    tremer(VIB.medalha);
+    await ask({
+      title: `Nível ${p.nivel}`,
+      text: `Seu bônus de ouro agora é de ${p.bonus_ouro}%. Faltam ${Math.round(p.xp_do_nivel)} XP para o próximo nível.`,
+      arte: anelNivel({ nivel: p.nivel, pct: 1, cor: corDoPerfil(perfil), tam: 96 }),
+      ok: 'SEGUIR',
+    });
+  }
+  for (const codigo of novas) await celebrarMedalha(codigo, p);
+}
+
+function avisarPerdaDeTerritorio(p) {
+  const ativa = Number(p.numeros && p.numeros.area_ativa) || 0;
+  const antes = store.get(AREA_KEY);
+  if (typeof antes === 'number' && ativa < antes - 1) {
+    tremer(VIB.recusa);
+    banner(`Enquanto você esteve fora, perdeu ${fmtArea(antes - ativa)} de território.`);
+    setTimeout(() => banner(''), 14000);
+  }
+  store.set(AREA_KEY, ativa);
+}
+
+async function celebrarMedalha(codigo, p) {
+  const m = (p.medalhas || []).find((x) => x.codigo === codigo);
+  if (!m) return;
+  tremer(VIB.medalha);
+  await ask({
+    title: m.nome,
+    text: m.descricao,
+    arte: medalhaSVG({ codigo: m.codigo, raridade: m.raridade, tam: 120 }),
+    ok: 'GUARDAR NA ESTANTE',
+    extra: {
+      rotulo: 'COMPARTILHAR',
+      acao: async () => {
+        const blob = await cartaoConquista({
+          titulo: m.nome, subtitulo: m.descricao, medalha: m,
+          cor: corDoPerfil(perfil), corEquipe: FACCOES[perfil.faccao].cor,
+          apelido: perfil.apelido, equipe: FACCOES[perfil.faccao].nome, nivel: p.nivel,
+        });
+        await compartilhar(blob, `atlas-${m.codigo}.png`, `Medalha ${m.nome} no ATLAS.`);
+      },
+    },
+  });
+}
+
+/* ===================== replay da rota ===================== */
+function replay(pontos) {
+  return new Promise((pronto) => {
+    if (!mapReady || !map.getSource('route') || pontos.length < 3) { pronto(); return; }
+    const coords = pontos.map((p) => [p.lng, p.lat]);
+    const lngs = coords.map((c) => c[0]); const lats = coords.map((c) => c[1]);
+    map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 70, duration: 600 });
+    const inicio = performance.now(); const dur = 2000;
+    const passo = (t) => {
+      const k = Math.min(1, (t - inicio) / dur);
+      const n = Math.max(2, Math.round(k * coords.length));
+      map.getSource('route').setData({
+        type: 'Feature', properties: {},
+        geometry: { type: 'LineString', coordinates: coords.slice(0, n) },
+      });
+      if (k < 1) requestAnimationFrame(passo);
+      else {
+        map.getSource('route').setData({
+          type: 'Feature', properties: {},
+          geometry: { type: 'Polygon', coordinates: [[...coords, coords[0]]] },
+        });
+        setTimeout(pronto, 450);
+      }
+    };
+    requestAnimationFrame(passo);
+  });
+}
+
 /* ===================== territórios e ranking ===================== */
 async function atualizarMapa() {
   if (!api.temSessao()) return;
@@ -631,6 +805,7 @@ async function abrirRanking() {
   }
 
   const [placar, lista] = await Promise.all([api.buscarPlacar(), api.buscarRanking()]);
+  pintarMeuProgresso();
   $('placar').innerHTML = placar.map((e) => {
     const f = FACCOES[e.faccao] || FACCOES.meridiano;
     return `<div class="eq" style="--c:${f.cor}">
@@ -639,19 +814,97 @@ async function abrirRanking() {
     </div>`;
   }).join('') || '<p class="vazio">Nenhuma equipe pontuou ainda.</p>';
 
-  $('rank').innerHTML = lista.map((j, i) => {
-    const f = FACCOES[j.faccao] || FACCOES.meridiano;
-    const eu = perfil && j.apelido === perfil.apelido;
-    return `<li class="${eu ? 'eu' : ''}">
-      <span class="pos">${i + 1}</span>
-      <span class="sh">${sneakerSVG({ modelo: j.modelo, cor: (NEONS.find((n) => n.id === j.cor) || NEONS[0]).cor, faccao: j.faccao, largura: 30, brilho: 0.6 })}</span>
-      <span class="nm">${j.apelido}<i style="color:${f.cor}">${f.nome}</i></span>
-      <span class="cr">${Number(j.creditos).toLocaleString('pt-BR')}</span>
-    </li>`;
-  }).join('');
+  $('rank').innerHTML = lista.map((j, i) =>
+    linhaRank(j, i, Number(j.creditos), Number(j.creditos).toLocaleString('pt-BR'))).join('');
   if (!lista.length) $('rank-nota').textContent = 'Ninguém fechou um circuito ainda. Seja o primeiro.';
   else $('rank-nota').textContent = 'Créditos valem enquanto o território for seu. Perdeu o território, perdeu os pontos.';
+  if (abaRank !== 'total') mostrarAba(abaRank);
 }
+
+function pintarMeuProgresso() {
+  const caixa = $('meu-prog');
+  if (!progresso || !progresso.ok) { caixa.hidden = true; return; }
+  const pct = Math.min(1, progresso.xp_no_nivel / Math.max(progresso.xp_do_nivel, 1));
+  const falta = Math.max(0, Math.round(progresso.xp_do_nivel - progresso.xp_no_nivel));
+  const of = progresso.ofensiva || 0;
+  caixa.hidden = false;
+  caixa.innerHTML = `
+    <div class="anel-g">${anelNivel({ nivel: progresso.nivel, pct, cor: corDoPerfil(perfil), tam: 54 })}</div>
+    <div>
+      <b>NÍVEL ${progresso.nivel}${progresso.nivel >= progresso.nivel_max ? ' · MÁXIMO' : ''}</b>
+      <div class="barra"><s style="width:${(pct * 100).toFixed(1)}%"></s></div>
+      <small>${progresso.nivel >= progresso.nivel_max ? 'Você chegou ao topo.' : `faltam ${falta.toLocaleString('pt-BR')} XP para o nível ${progresso.nivel + 1}`}
+        · +${progresso.bonus_ouro}% de ouro</small>
+      <small>${of > 0 ? `<span class="fogo">ofensiva de ${of} dia${of > 1 ? 's' : ''}</span>` : 'sem ofensiva: caminhe hoje para começar'}
+        · ${fmtArea(progresso.semana)} nesta semana</small>
+    </div>`;
+}
+
+async function mostrarAba(qual) {
+  abaRank = qual;
+  for (const b of document.querySelectorAll('.aba')) b.classList.toggle('on', b.dataset.aba === qual);
+  const lista = $('rank'); const estante = $('minhas-medalhas');
+  lista.hidden = qual === 'medalhas';
+  estante.hidden = qual !== 'medalhas';
+
+  if (qual === 'medalhas') {
+    $('rank-tit').textContent = 'Minhas medalhas';
+    estante.innerHTML = '<p class="nota">Carregando…</p>';
+    catalogo = catalogo || await api.buscarCatalogo();
+    const tenho = new Set(((progresso && progresso.medalhas) || []).map((m) => m.codigo));
+    estante.innerHTML = catalogo.map((m) => cardMedalha(m, tenho.has(m.codigo))).join('')
+      || '<p class="nota">O catálogo de medalhas ainda não foi aplicado no servidor.</p>';
+    $('rank-nota').textContent = `${tenho.size} de ${catalogo.length} conquistadas. Toque numa para ver o que ela pede.`;
+    return;
+  }
+
+  if (qual === 'semana') {
+    $('rank-tit').textContent = 'Racha da semana — zera toda segunda-feira';
+    lista.innerHTML = '<li class="vazio">Carregando…</li>';
+    const semana = await api.buscarSemana();
+    lista.innerHTML = semana.map((j, i) => linhaRank(j, i, Number(j.area), fmtArea(Number(j.area)))).join('')
+      || '<li class="vazio">Ninguém conquistou nada nesta semana ainda.</li>';
+    $('rank-nota').textContent = 'O território continua seu. O que zera na segunda é só este placar.';
+    return;
+  }
+
+  $('rank-tit').textContent = 'Ranking individual — por créditos ativos';
+  abrirRanking();
+}
+
+function linhaRank(j, i, valor, rotulo) {
+  const f = FACCOES[j.faccao] || FACCOES.meridiano;
+  const eu = perfil && j.apelido === perfil.apelido;
+  return `<li class="${eu ? 'eu' : ''}" data-jog="${j.apelido}">
+    <span class="pos">${i + 1}</span>
+    <span class="sh">${sneakerSVG({ modelo: j.modelo, cor: (NEONS.find((n) => n.id === j.cor) || NEONS[0]).cor, faccao: j.faccao, largura: 30, brilho: 0.6 })}</span>
+    <span class="nm">${j.apelido}<i style="color:${f.cor}">${f.nome}</i></span>
+    <span class="cr">${rotulo}</span>
+  </li>`;
+}
+
+$('abas').addEventListener('click', (e) => {
+  const b = e.target.closest('.aba');
+  if (b) mostrarAba(b.dataset.aba);
+});
+$('rank').addEventListener('click', (e) => {
+  const li = e.target.closest('[data-jog]');
+  if (li) abrirJogador(li.dataset.jog);
+});
+$('minhas-medalhas').addEventListener('click', async (e) => {
+  const d = e.target.closest('[data-med]');
+  if (!d) return;
+  catalogo = catalogo || await api.buscarCatalogo();
+  const m = catalogo.find((x) => x.codigo === d.dataset.med);
+  if (!m) return;
+  const tem = ((progresso && progresso.medalhas) || []).some((x) => x.codigo === m.codigo);
+  await ask({
+    title: m.nome,
+    text: tem ? m.descricao : `${m.descricao}\n\nAinda não conquistada.`,
+    arte: medalhaSVG({ codigo: m.codigo, raridade: m.raridade, tam: 110, ganha: tem }),
+    ok: 'FECHAR',
+  });
+});
 
 $('campo-codigo').hidden = !api.temServidor;
 $('btn-sair').onclick = async () => {
@@ -775,11 +1028,11 @@ ui.finish.onclick = async () => {
   save();
   releaseScreen();
   render();
-  drawAll();
 
   const resumo = `Percurso: ${fmtDist(payload.distanceM)} em ${fmtTime(payload.finishedAt - payload.startedAt)}.`;
   toast('Enviando a rota para o servidor…', 2500);
-  const r = await api.enviarRota(payload);
+  const [r] = await Promise.all([api.enviarRota(payload), replay(payload.points)]);
+  drawAll();
 
   if (r && r.ok && r.repetida) {
     await ask({ title: 'Rota já registrada', text: `${resumo}\n\nEsta rota já tinha sido validada pelo servidor; não contou duas vezes.`, ok: 'VOLTAR AO MAPA' });
@@ -790,18 +1043,38 @@ ui.finish.onclick = async () => {
   if (r && r.ok) {
     const tomadas = (r.tomadas || []).map((t) => `${t.apelido} (${Number(t.area).toLocaleString('pt-BR')} m²)`);
     aviso();
+    tremer(VIB.conquista);
     await ask({
       title: 'Território conquistado',
       numeros: [[fmtArea(r.area_terreno), 'área tomada'], [Number(r.creditos).toLocaleString('pt-BR'), 'créditos'],
         ...(carteira ? [[`+${fmtOuro(Math.floor(r.area_terreno / 1000))}`, 'ouro']] : [])],
       text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
       ok: 'VOLTAR AO MAPA',
+      extra: {
+        rotulo: 'CARTÃO',
+        acao: async () => {
+          const blob = await cartaoConquista({
+            titulo: fmtArea(r.area_terreno),
+            subtitulo: 'território conquistado',
+            linhas: [`${fmtDist(payload.distanceM)} caminhados em ${fmtTime(payload.finishedAt - payload.startedAt)}`,
+              new Date(payload.finishedAt).toLocaleDateString('pt-BR')],
+            pontos: payload.points,
+            cor: corDoPerfil(perfil), corEquipe: FACCOES[perfil.faccao].cor,
+            apelido: perfil.apelido, equipe: FACCOES[perfil.faccao].nome,
+            nivel: progresso && progresso.nivel,
+          });
+          await compartilhar(blob, 'atlas-conquista.png',
+            `Conquistei ${fmtArea(r.area_terreno)} para a ${FACCOES[perfil.faccao].nome} no ATLAS.`);
+        },
+      },
     });
     carteira = await api.buscarCarteira();
     await atualizarMapa();
+    await atualizarProgresso();
     return;
   }
 
+  tremer(VIB.recusa);
   await ask({
     title: r && r.motivo === 'sem_servidor' ? 'Rota registrada neste aparelho' : 'Rota não validada',
     text: `${resumo}\n\n${(r && MOTIVOS[r.motivo === 'rede' ? 'rede_rota' : r.motivo]) || (r && r.detalhe) || 'O servidor não aceitou esta rota.'}`,
@@ -824,8 +1097,13 @@ ui.abandon.onclick = async () => {
 };
 
 /* ===================== desenho do estado ===================== */
+// A volta ao ponto inicial já vibra em aviso(). Aqui só a saída da zona,
+// que até agora não dava nenhum retorno com o celular no bolso.
+let eraFora = false;
 function render() {
   const st = session.state;
+  if (st === 'active' && session.leftZone && !eraFora) { tremer(VIB.saiu); eraFora = true; }
+  if (st === 'idle') eraFora = false;
   ui.start.hidden = st !== 'idle';
   ui.finish.hidden = st !== 'ready';
   ui.abandon.hidden = st === 'idle';
@@ -888,6 +1166,7 @@ function entrarNoJogo() {
   aplicarCores(perfil);
   atualizarMarcador();
   atualizarMapa();
+  atualizarProgresso();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
 }
 
@@ -909,6 +1188,12 @@ if (perfil && !api.temServidor) {
   abrirOnboarding();
 }
 setInterval(() => { if (api.temSessao() && document.visibilityState === 'visible') atualizarMapa(); }, 45000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && api.temSessao() && session.state === 'idle') {
+    atualizarMapa();
+    atualizarProgresso();
+  }
+});
 
 if (session.state !== 'idle') {
   sessaoServidor = session.sessaoServidor || null;
