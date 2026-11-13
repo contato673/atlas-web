@@ -183,14 +183,24 @@ export function montarCorpo(cores) {
   queixo.position.set(0, 0.3, 0.18);
   const barbicha = caixa(0.3, 0.09, 0.1, mInterno);
   barbicha.position.set(0, 0.24, 0.54);
-  // crista no alto do capacete, da testa para a nuca: e o que da silhueta.
-  // A antena lateral anterior virava um ponto solto no ar, porque a haste
-  // escura sumia no fundo escuro e so a ponta acesa aparecia.
-  const crista = caixa(0.09, 0.42, 0.5, mNeon);
-  crista.position.set(0, 1.62, -0.02);
-  const cristaBase = caixa(0.15, 0.3, 0.58, mCapacete);
-  cristaBase.position.set(0, 1.46, -0.02);
-  cabeca.add(gola, cranio, queixo, calota, moldura, viseira, barbicha, cristaBase, crista);
+  // Aletas nas laterais do capacete. A crista no alto nao servia: uma
+  // barbatana de 0,09 de espessura vista de frente e um fio, e o jogador olha
+  // o boneco de frente o tempo todo. Aleta lateral aparece de frente e de
+  // perfil, e e ela que marca a silhueta no mapa.
+  const aleta = (lado) => {
+    const a = new THREE.Group();
+    const base = caixa(0.1, 0.3, 0.3, mCapacete);
+    const acesa = caixa(0.07, 0.34, 0.16, mNeon);
+    acesa.position.set(lado * 0.04, 0.12, -0.02);
+    a.add(base, acesa);
+    a.position.set(lado * 0.7, 1.0, -0.06);
+    a.rotation.z = lado * rad(-22);
+    return a;
+  };
+  // lombada discreta no alto, so para o capacete nao ser uma cupula lisa
+  const lombada = caixa(0.16, 0.14, 0.62, mCapacete);
+  lombada.position.set(0, 1.5, -0.02);
+  cabeca.add(gola, cranio, queixo, calota, moldura, viseira, barbicha, lombada, aleta(-1), aleta(1));
   cabeca.position.y = PESCOCO;
 
   // ---- sombra de contato: e isto que assenta o boneco no chao
