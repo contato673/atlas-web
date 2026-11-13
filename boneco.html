@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ATLAS — Vestiário</title>
-<link rel="stylesheet" href="style.css?v=40">
+<title>ATLAS — Oficina</title>
+<link rel="stylesheet" href="style.css?v=41">
 <style>
   body { margin: 0; }
   .vest { min-height: 100dvh; display: flex; flex-direction: column; background:
@@ -43,7 +43,7 @@
 </head>
 <body>
 <div class="vest">
-  <div class="vest-topo"><h1>VESTIÁRIO</h1></div>
+  <div class="vest-topo"><h1>OFICINA</h1></div>
   <div class="palco" id="palco"><canvas id="palcoCanvas"></canvas></div>
   <p class="dica" id="dica">Arraste para girar</p>
   <div class="vest-baixo">
@@ -57,15 +57,15 @@
 </div>
 
 <script type="module">
-import { criarBoneco } from './boneco3d.js?v=40';
-import { NEONS } from './player.js?v=40';
+import { criarBoneco } from './boneco3d.js?v=41';
+import { NEONS } from './player.js?v=41';
 import {
-  SLOTS, CATALOGO, PELES, CORES_CABELO, CORES_PANO,
+  SLOTS, CATALOGO, PLACAS, CORES_PECA,
   VISUAL_PADRAO, resolverVisual, mudouDePeca, precoDaPeca,
-} from './visual.js?v=40';
+} from './visual.js?v=41';
 
-const PALETAS = { cabelo: CORES_CABELO, pano: CORES_PANO };
-const CHAVE = 'atlas.vestiario.v1';
+const PALETAS = { peca: CORES_PECA };
+const CHAVE = 'atlas.oficina.v1';
 
 let visual = { ...VISUAL_PADRAO };
 try {
@@ -127,7 +127,7 @@ function desenhar() {
   const nAba = botao({ rotulo: 'Neon', ativo: aba === 'neon', aoClicar: () => { aba = 'neon'; desenhar(); } });
   nAba.classList.add('aba');
   abas.appendChild(nAba);
-  const pAba = botao({ rotulo: 'Pele', ativo: aba === 'pele', aoClicar: () => { aba = 'pele'; desenhar(); } });
+  const pAba = botao({ rotulo: 'Placa', ativo: aba === 'placa', aoClicar: () => { aba = 'placa'; desenhar(); } });
   pAba.classList.add('aba');
   abas.appendChild(pAba);
 
@@ -148,16 +148,16 @@ function desenhar() {
     return;
   }
 
-  if (aba === 'pele') {
+  if (aba === 'placa') {
     const fila = document.createElement('div');
     fila.className = 'fila';
-    for (const t of PELES) {
+    for (const t of PLACAS) {
       fila.appendChild(botao({
-        rotulo: t.nome, cor: t.cor, ativo: visual.pele === t.id,
-        aoClicar: () => trocar({ pele: t.id }),
+        rotulo: t.nome, cor: t.cor, ativo: visual.placa === t.id,
+        aoClicar: () => trocar({ placa: t.id }),
       }));
     }
-    p.appendChild(titulo('TOM DE PELE'));
+    p.appendChild(titulo('METAL DO CHASSI'));
     p.appendChild(fila);
     return;
   }

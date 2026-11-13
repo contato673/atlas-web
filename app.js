@@ -2,20 +2,20 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=40';
+} from './geo.js?v=41';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=40';
-import * as api from './api.js?v=40';
+} from './player.js?v=41';
+import * as api from './api.js?v=41';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
-} from './visual.js?v=40';
+} from './visual.js?v=41';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=40';
+} from './progresso.js?v=41';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -806,10 +806,15 @@ let ultimoVisual = null;
 // O visual guardado no perfil vem em ids de peca. Quem ainda nao tem visual
 // novo cai no preset do modelo antigo, entao ninguem abre o jogo e encontra um
 // boneco diferente do seu.
+// Os tres modelos antigos viram conjuntos de peça equivalentes, para quem ja
+// tinha roupa comprada nao abrir o jogo e encontrar outra unidade.
+const PRESET_ANTIGO = { basico: 'batedor', corredor: 'corredor', jaqueta: 'bastiao' };
+
 function visualCru() {
   const salvo = perfil && perfil.visual;
   if (visualValido(salvo)) return salvo;
-  return PRESETS[(perfil && perfil.modelo) || 'basico'] || VISUAL_PADRAO;
+  const antigo = PRESET_ANTIGO[(perfil && perfil.modelo) || 'basico'] || 'batedor';
+  return PRESETS[antigo] || VISUAL_PADRAO;
 }
 
 function visualDoBoneco() {
@@ -828,7 +833,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=40');
+    const mod = await import('./boneco3d.js?v=41');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
