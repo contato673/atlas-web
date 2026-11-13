@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ATLAS — Vestiário</title>
+<link rel="stylesheet" href="style.css?v=34">
+<style>
+  body { margin: 0; }
+  .vest { min-height: 100dvh; display: flex; flex-direction: column; background:
+    radial-gradient(120% 70% at 50% 0%, #15243a 0%, #0a1018 60%, #070b11 100%); }
+  .vest-topo { padding: 18px 20px 6px; text-align: center; }
+  .vest-topo h1 { margin: 0; font-size: 15px; letter-spacing: .32em; color: #8fa6c4; font-weight: 700; }
+  .palco { flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; touch-action: none; cursor: grab; min-height: 300px; }
+  .palco:active { cursor: grabbing; }
+  .palco::after { content: ''; position: absolute; left: 50%; bottom: 14%;
+    width: 220px; height: 54px; transform: translateX(-50%);
+    background: radial-gradient(50% 50% at 50% 50%, rgba(34,227,255,.18), transparent 70%); }
+  #palcoCanvas { position: relative; z-index: 1; }
+  .dica { text-align: center; font-size: 11px; color: #5c7190; }
+  .vest-baixo { padding: 10px 16px calc(18px + env(safe-area-inset-bottom)); }
+  .grupo { margin-bottom: 14px; }
+  .grupo h2 { margin: 0 0 7px; font-size: 11px; letter-spacing: .18em; color: #6d84a3; font-weight: 700; }
+  .fila { display: flex; gap: 8px; flex-wrap: wrap; }
+  .op { border: 1px solid #22304a; background: #101a28; color: #c3d2e6;
+    padding: 8px 13px; border-radius: 11px; font: inherit; font-size: 13px; cursor: pointer; }
+  .op[aria-pressed="true"] { border-color: #22e3ff; color: #eaf6ff; box-shadow: inset 0 0 0 1px #22e3ff44; }
+  .bola { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+  .acoes { display: flex; gap: 8px; }
+  .acoes .op { flex: 1; text-align: center; }
+</style>
+</head>
+<body>
+<div class="vest">
+  <div class="vest-topo"><h1>VESTIÁRIO</h1></div>
+  <div class="palco" id="palco"><canvas id="palcoCanvas"></canvas></div>
+  <p class="dica" id="dica">Arraste para girar</p>
+  <div class="vest-baixo">
+    <div class="grupo"><h2>TRAJE</h2><div class="fila" id="filaRoupa"></div></div>
+    <div class="grupo"><h2>NEON</h2><div class="fila" id="filaCor"></div></div>
+    <div class="grupo"><h2>PELE</h2><div class="fila" id="filaPele"></div></div>
+    <div class="acoes">
+      <button class="op" id="btAndar" aria-pressed="true">Andando</button>
+      <button class="op" id="btVoltar">Voltar ao jogo</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { criarBoneco } from './boneco3d.js?v=34';
+import { ROUPAS, NEONS } from './player.js?v=34';
+
+// Os três trajes do jogo, agora como conjuntos de cor do personagem 3D.
+// Os ids são os mesmos da loja e do banco, para nada quebrar.
+const TRAJES = {
+  basico:   { roupa: '#2d3f54', calca: '#1d2836', sapato: '#0e151e', bone: '#33465f', cabelo: '#131b26' },
+  corredor: { roupa: '#15485c', calca: '#10303d', sapato: '#0b1b22', bone: '#2a7f96', cabelo: '#0e1a22' },
+  jaqueta:  { roupa: '#242a31', calca: '#1a1f25', sapato: '#0d1115', bone: '#3c444e', cabelo: '#14181d' },
+};
+const PELES = ['#e2b78f', '#c89a72', '#9e7249', '#6f4a2c'];
+
+const estado = { roupa: 'basico', cor: NEONS[0].cor, pele: PELES[1], andando: true, angulo: 0.0 };
+const cores = () => ({ ...TRAJES[estado.roupa], pele: estado.pele, detalhe: estado.cor });
+
+const $ = (id) => document.getElementById(id);
+const palco = $('palco');
+const canvas = $('palcoCanvas');
+
+function botao(fila, rotulo, ativo, aoClicar, estilo) {
+  const b = document.createElement('button');
+  b.className = 'op' + (estilo ? ' ' + estilo : '');
+  if (estilo === 'bola') { b.style.background = rotulo; b.title = 'cor'; } else { b.textContent = rotulo; }
+  b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+  b.onclick = () => { aoClicar(); desenharMenus(); };
+  fila.appendChild(b);
+}
+
+let boneco = null;
+
+function desenharMenus() {
+  const fr = $('filaRoupa'); fr.textContent = '';
+  for (const r of ROUPAS) {
+    botao(fr, r.nome, estado.roupa === r.id, () => {
+      estado.roupa = r.id; if (boneco) boneco.pintar(cores());
+    });
+  }
+  const fc = $('filaCor'); fc.textContent = '';
+  for (const n of NEONS) {
+    botao(fc, n.cor, estado.cor === n.cor, () => {
+      estado.cor = n.cor; if (boneco) boneco.pintar(cores());
+    }, 'bola');
+  }
+  const fp = $('filaPele'); fp.textContent = '';
+  for (const p of PELES) {
+    botao(fp, p, estado.pele === p, () => {
+      estado.pele = p; if (boneco) boneco.pintar(cores());
+    }, 'bola');
+  }
+  $('btAndar').setAttribute('aria-pressed', estado.andando ? 'true' : 'false');
+  $('btAndar').textContent = estado.andando ? 'Andando' : 'Parado';
+}
+
+function medir() {
+  const larg = Math.min(palco.clientWidth - 24, 360);
+  const alt = Math.min(palco.clientHeight - 16, 440);
+  canvas.style.width = larg + 'px';
+  canvas.style.height = alt + 'px';
+  if (boneco) boneco.dimensionar(larg, alt);
+}
+
+// Arrastar para girar: um dedo na tela ou o mouse, sem biblioteca.
+let arrastando = false; let xAnterior = 0;
+const comecar = (x) => { arrastando = true; xAnterior = x; };
+const mover = (x) => {
+  if (!arrastando) return;
+  estado.angulo += (x - xAnterior) * 0.012;
+  xAnterior = x;
+};
+const parar = () => { arrastando = false; };
+palco.addEventListener('pointerdown', (e) => comecar(e.clientX));
+window.addEventListener('pointermove', (e) => mover(e.clientX));
+window.addEventListener('pointerup', parar);
+palco.addEventListener('pointercancel', parar);
+
+$('btAndar').onclick = () => { estado.andando = !estado.andando; desenharMenus(); };
+$('btVoltar').onclick = () => { location.href = './'; };
+
+desenharMenus();
+
+try {
+  boneco = await criarBoneco(canvas, cores());
+  medir();
+  window.addEventListener('resize', medir);
+  const laco = () => {
+    boneco.quadro(estado.andando, 0, estado.angulo);
+    requestAnimationFrame(laco);
+  };
+  laco();
+  window.__boneco = boneco; // para conferência
+} catch (e) {
+  $('dica').textContent = 'O 3D não abriu neste aparelho: ' + e.message;
+}
+</script>
+</body>
+</html>
