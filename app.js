@@ -10,6 +10,9 @@ import {
 } from './player.js?v=40';
 import * as api from './api.js?v=40';
 import {
+  resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
+} from './visual.js?v=40';
+import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
 } from './progresso.js?v=40';
@@ -798,16 +801,19 @@ function levantarPredios() {
 // nesta seção pode derrubar o resto.
 let boneco3d = null;
 let laco3d = 0;
+let ultimoVisual = null;
 
-function coresDoBoneco() {
-  const neon = corDoPerfil(perfil);
-  const fac = FACCOES[(perfil && perfil.faccao) || 'meridiano'].cor;
-  const roupa = { basico: '#1b2634', corredor: '#16202c', jaqueta: '#202c3c' }[
-    (perfil && perfil.modelo) || 'basico'] || '#1b2634';
-  return {
-    pele: '#c89a72', roupa, calca: '#1d2836', sapato: '#0e151e',
-    bone: fac, cabelo: '#161e29', detalhe: neon,
-  };
+// O visual guardado no perfil vem em ids de peca. Quem ainda nao tem visual
+// novo cai no preset do modelo antigo, entao ninguem abre o jogo e encontra um
+// boneco diferente do seu.
+function visualCru() {
+  const salvo = perfil && perfil.visual;
+  if (visualValido(salvo)) return salvo;
+  return PRESETS[(perfil && perfil.modelo) || 'basico'] || VISUAL_PADRAO;
+}
+
+function visualDoBoneco() {
+  return resolverVisual(visualCru(), corDoPerfil(perfil));
 }
 
 // Tamanho na tela: cresce com a aproximação, como qualquer coisa que está no
@@ -823,7 +829,8 @@ async function ligarBoneco3d() {
   if (!tela) return;
   try {
     const mod = await import('./boneco3d.js?v=40');
-    boneco3d = await mod.criarBoneco(tela, coresDoBoneco());
+    ultimoVisual = visualCru();
+    boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
     if (marker) marker.getElement().classList.add('tem3d');
     rodar3d();
@@ -863,7 +870,13 @@ function rodar3d() {
 }
 
 function repintarBoneco3d() {
-  if (boneco3d) { try { boneco3d.pintar(coresDoBoneco()); } catch { /* segue */ } }
+  if (!boneco3d) return;
+  try {
+    const cru = visualCru();
+    if (mudouDePeca(ultimoVisual, cru)) boneco3d.vestir(visualDoBoneco());
+    else boneco3d.pintar(visualDoBoneco());
+    ultimoVisual = cru;
+  } catch { /* segue com o que ja esta na tela */ }
 }
 
 /* ===================== latinhas de energia ===================== */

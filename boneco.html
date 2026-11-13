@@ -27,6 +27,16 @@
     padding: 8px 13px; border-radius: 11px; font: inherit; font-size: 13px; cursor: pointer; }
   .op[aria-pressed="true"] { border-color: #22e3ff; color: #eaf6ff; box-shadow: inset 0 0 0 1px #22e3ff44; }
   .bola { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+  .abas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px;
+    scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .op.aba { white-space: nowrap; padding: 7px 12px; font-size: 12px; }
+  #prateleira h2 { margin: 2px 0 7px; font-size: 11px; letter-spacing: .18em;
+    color: #6d84a3; font-weight: 700; }
+  #prateleira .fila { margin-bottom: 12px; }
+  .op b { display: block; font-weight: 600; }
+  .op i { display: block; font-style: normal; font-size: 11px; color: #ffcb57; margin-top: 2px; }
+  .op.travado { opacity: .72; }
   .acoes { display: flex; gap: 8px; }
   .acoes .op { flex: 1; text-align: center; }
 </style>
@@ -37,9 +47,8 @@
   <div class="palco" id="palco"><canvas id="palcoCanvas"></canvas></div>
   <p class="dica" id="dica">Arraste para girar</p>
   <div class="vest-baixo">
-    <div class="grupo"><h2>TRAJE</h2><div class="fila" id="filaRoupa"></div></div>
-    <div class="grupo"><h2>NEON</h2><div class="fila" id="filaCor"></div></div>
-    <div class="grupo"><h2>PELE</h2><div class="fila" id="filaPele"></div></div>
+    <div id="abas" class="abas"></div>
+    <div id="prateleira"></div>
     <div class="acoes">
       <button class="op" id="btAndar" aria-pressed="true">Andando</button>
       <button class="op" id="btVoltar">Voltar ao jogo</button>
@@ -49,61 +58,147 @@
 
 <script type="module">
 import { criarBoneco } from './boneco3d.js?v=40';
-import { ROUPAS, NEONS } from './player.js?v=40';
+import { NEONS } from './player.js?v=40';
+import {
+  SLOTS, CATALOGO, PELES, CORES_CABELO, CORES_PANO,
+  VISUAL_PADRAO, resolverVisual, mudouDePeca, precoDaPeca,
+} from './visual.js?v=40';
 
-// Os três trajes do jogo, agora como conjuntos de cor do personagem 3D.
-// Os ids são os mesmos da loja e do banco, para nada quebrar.
-const TRAJES = {
-  basico:   { roupa: '#2d3f54', calca: '#1d2836', sapato: '#0e151e', bone: '#33465f', cabelo: '#131b26' },
-  corredor: { roupa: '#15485c', calca: '#10303d', sapato: '#0b1b22', bone: '#2a7f96', cabelo: '#0e1a22' },
-  jaqueta:  { roupa: '#242a31', calca: '#1a1f25', sapato: '#0d1115', bone: '#3c444e', cabelo: '#14181d' },
-};
-const PELES = ['#e2b78f', '#c89a72', '#9e7249', '#6f4a2c'];
+const PALETAS = { cabelo: CORES_CABELO, pano: CORES_PANO };
+const CHAVE = 'atlas.vestiario.v1';
 
-const estado = { roupa: 'basico', cor: NEONS[0].cor, pele: PELES[1], andando: true, angulo: 0.0 };
-const cores = () => ({ ...TRAJES[estado.roupa], pele: estado.pele, detalhe: estado.cor });
+let visual = { ...VISUAL_PADRAO };
+try {
+  const salvo = JSON.parse(localStorage.getItem(CHAVE));
+  if (salvo) visual = { ...visual, ...salvo };
+} catch { /* sem armazenamento */ }
+
+let neon = (NEONS.find((n) => n.id === visual.neonId) || NEONS[0]);
+let aba = SLOTS[0].id;
+const estado = { andando: true, angulo: 0 };
 
 const $ = (id) => document.getElementById(id);
 const palco = $('palco');
 const canvas = $('palcoCanvas');
-
-function botao(fila, rotulo, ativo, aoClicar, estilo) {
-  const b = document.createElement('button');
-  b.className = 'op' + (estilo ? ' ' + estilo : '');
-  if (estilo === 'bola') { b.style.background = rotulo; b.title = 'cor'; } else { b.textContent = rotulo; }
-  b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
-  b.onclick = () => { aoClicar(); desenharMenus(); };
-  fila.appendChild(b);
-}
-
 let boneco = null;
 
-function desenharMenus() {
-  const fr = $('filaRoupa'); fr.textContent = '';
-  for (const r of ROUPAS) {
-    botao(fr, r.nome, estado.roupa === r.id, () => {
-      estado.roupa = r.id; if (boneco) boneco.pintar(cores());
+const resolvido = () => resolverVisual(visual, neon.cor);
+
+function guardar() {
+  try { localStorage.setItem(CHAVE, JSON.stringify({ ...visual, neonId: neon.id })); } catch { /* ok */ }
+}
+
+// Peca muda a geometria, cor nao: so remonta quando precisa mesmo.
+function aplicar(antes) {
+  if (!boneco) return;
+  if (mudouDePeca(antes, visual)) boneco.vestir(resolvido());
+  else boneco.pintar(resolvido());
+  guardar();
+}
+
+function trocar(mudanca) {
+  const antes = { ...visual };
+  visual = { ...visual, ...mudanca };
+  aplicar(antes);
+  desenhar();
+}
+
+function botao({ rotulo, cor, ativo, preco, aoClicar }) {
+  const b = document.createElement('button');
+  b.className = 'op' + (cor ? ' bola' : '') + (preco ? ' travado' : '');
+  if (cor) { b.style.background = cor; b.setAttribute('aria-label', rotulo); b.title = rotulo; }
+  else b.innerHTML = `<b>${rotulo}</b>${preco ? `<i>${preco} ouro</i>` : ''}`;
+  b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+  b.onclick = aoClicar;
+  return b;
+}
+
+function desenhar() {
+  const abas = $('abas');
+  abas.textContent = '';
+  for (const s of SLOTS) {
+    const b = botao({
+      rotulo: s.nome, ativo: aba === s.id,
+      aoClicar: () => { aba = s.id; desenhar(); },
     });
+    b.classList.add('aba');
+    abas.appendChild(b);
   }
-  const fc = $('filaCor'); fc.textContent = '';
-  for (const n of NEONS) {
-    botao(fc, n.cor, estado.cor === n.cor, () => {
-      estado.cor = n.cor; if (boneco) boneco.pintar(cores());
-    }, 'bola');
+  const nAba = botao({ rotulo: 'Neon', ativo: aba === 'neon', aoClicar: () => { aba = 'neon'; desenhar(); } });
+  nAba.classList.add('aba');
+  abas.appendChild(nAba);
+  const pAba = botao({ rotulo: 'Pele', ativo: aba === 'pele', aoClicar: () => { aba = 'pele'; desenhar(); } });
+  pAba.classList.add('aba');
+  abas.appendChild(pAba);
+
+  const p = $('prateleira');
+  p.textContent = '';
+
+  if (aba === 'neon') {
+    const fila = document.createElement('div');
+    fila.className = 'fila';
+    for (const n of NEONS) {
+      fila.appendChild(botao({
+        rotulo: n.nome, cor: n.cor, ativo: neon.id === n.id,
+        aoClicar: () => { neon = n; if (boneco) boneco.vestir(resolvido()); guardar(); desenhar(); },
+      }));
+    }
+    p.appendChild(titulo('COR DO NEON'));
+    p.appendChild(fila);
+    return;
   }
-  const fp = $('filaPele'); fp.textContent = '';
-  for (const p of PELES) {
-    botao(fp, p, estado.pele === p, () => {
-      estado.pele = p; if (boneco) boneco.pintar(cores());
-    }, 'bola');
+
+  if (aba === 'pele') {
+    const fila = document.createElement('div');
+    fila.className = 'fila';
+    for (const t of PELES) {
+      fila.appendChild(botao({
+        rotulo: t.nome, cor: t.cor, ativo: visual.pele === t.id,
+        aoClicar: () => trocar({ pele: t.id }),
+      }));
+    }
+    p.appendChild(titulo('TOM DE PELE'));
+    p.appendChild(fila);
+    return;
   }
-  $('btAndar').setAttribute('aria-pressed', estado.andando ? 'true' : 'false');
-  $('btAndar').textContent = estado.andando ? 'Andando' : 'Parado';
+
+  const slot = SLOTS.find((s) => s.id === aba);
+  const fila = document.createElement('div');
+  fila.className = 'fila';
+  for (const item of CATALOGO[slot.id]) {
+    const preco = precoDaPeca(slot.id, item.id);
+    fila.appendChild(botao({
+      rotulo: item.nome, ativo: visual[slot.id] === item.id, preco,
+      aoClicar: () => trocar({ [slot.id]: item.id }),
+    }));
+  }
+  p.appendChild(titulo('MODELO'));
+  p.appendChild(fila);
+
+  if (slot.cores) {
+    const chave = `${slot.id}Cor`;
+    const filaC = document.createElement('div');
+    filaC.className = 'fila';
+    for (const c of PALETAS[slot.cores]) {
+      filaC.appendChild(botao({
+        rotulo: c.nome, cor: c.cor || neon.cor, ativo: visual[chave] === c.id,
+        aoClicar: () => trocar({ [chave]: c.id }),
+      }));
+    }
+    p.appendChild(titulo('COR'));
+    p.appendChild(filaC);
+  }
+}
+
+function titulo(t) {
+  const h = document.createElement('h2');
+  h.textContent = t;
+  return h;
 }
 
 function medir() {
-  const larg = Math.min(palco.clientWidth - 24, 360);
-  const alt = Math.min(palco.clientHeight - 16, 440);
+  const larg = Math.min(palco.clientWidth - 24, 340);
+  const alt = Math.min(Math.max(palco.clientHeight - 12, 240), 420);
   canvas.style.width = larg + 'px';
   canvas.style.height = alt + 'px';
   if (boneco) boneco.dimensionar(larg, alt);
@@ -111,25 +206,26 @@ function medir() {
 
 // Arrastar para girar: um dedo na tela ou o mouse, sem biblioteca.
 let arrastando = false; let xAnterior = 0;
-const comecar = (x) => { arrastando = true; xAnterior = x; };
-const mover = (x) => {
+palco.addEventListener('pointerdown', (e) => { arrastando = true; xAnterior = e.clientX; });
+window.addEventListener('pointermove', (e) => {
   if (!arrastando) return;
-  estado.angulo += (x - xAnterior) * 0.012;
-  xAnterior = x;
-};
-const parar = () => { arrastando = false; };
-palco.addEventListener('pointerdown', (e) => comecar(e.clientX));
-window.addEventListener('pointermove', (e) => mover(e.clientX));
-window.addEventListener('pointerup', parar);
-palco.addEventListener('pointercancel', parar);
+  estado.angulo += (e.clientX - xAnterior) * 0.012;
+  xAnterior = e.clientX;
+});
+window.addEventListener('pointerup', () => { arrastando = false; });
+palco.addEventListener('pointercancel', () => { arrastando = false; });
 
-$('btAndar').onclick = () => { estado.andando = !estado.andando; desenharMenus(); };
+$('btAndar').onclick = () => {
+  estado.andando = !estado.andando;
+  $('btAndar').textContent = estado.andando ? 'Andando' : 'Parado';
+  $('btAndar').setAttribute('aria-pressed', estado.andando ? 'true' : 'false');
+};
 $('btVoltar').onclick = () => { location.href = './'; };
 
-desenharMenus();
+desenhar();
 
 try {
-  boneco = await criarBoneco(canvas, cores());
+  boneco = await criarBoneco(canvas, resolvido());
   medir();
   window.addEventListener('resize', medir);
   const laco = () => {
@@ -137,9 +233,10 @@ try {
     requestAnimationFrame(laco);
   };
   laco();
-  window.__boneco = boneco; // para conferência
+  window.__boneco = boneco; // para conferencia
+  window.__vestir = (m) => trocar(m);
 } catch (e) {
-  $('dica').textContent = 'O 3D não abriu neste aparelho: ' + e.message;
+  $('dica').textContent = 'O 3D nao abriu neste aparelho: ' + e.message;
 }
 </script>
 </body>
