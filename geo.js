@@ -7,7 +7,9 @@ export const CONFIG = {
   MAX_SPEED_KMH: 25, // limite de velocidade
 
   // --- PROPOSTAS, não aprovadas (seção 10: pendências). Ajustar após testes de campo. ---
-  LEAVE_RADIUS_M: 25, // distância que conta como "saiu da zona inicial"
+  LEAVE_RADIUS_M: 40, // espelha raio_saida_m do servidor. Mudar os dois juntos:
+                      // com 25 aqui e 40 lá, o jogo oferece FINALIZAR numa rota
+                      // que o servidor vai recusar.
   MAX_ACCURACY_M: 35, // leituras com precisão pior que isto não mudam o estado
   MIN_POINT_SPACING_M: 4, // não grava pontos mais próximos que isto do anterior
   // Com GPS ruim o ponto "anda" sozinho. Só vira vértice quem se afastou mais

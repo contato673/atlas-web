@@ -1,15 +1,15 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=21';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=22';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=21';
-import * as api from './api.js?v=21';
+} from './player.js?v=22';
+import * as api from './api.js?v=22';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=21';
+} from './progresso.js?v=22';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -1031,6 +1031,16 @@ ui.start.onclick = async () => {
 
 ui.finish.onclick = async () => {
   if (!session.canFinish) return;
+  // Evita a frustração de caminhar, finalizar e só então ouvir um não.
+  if (session.distanceM < CONFIG.MIN_ROUTE_M) {
+    const segue = await ask({
+      title: 'O servidor vai recusar',
+      text: `O percurso tem ${Math.round(session.distanceM)} m e o mínimo é ${CONFIG.MIN_ROUTE_M} m.\n\n`
+        + 'Dê mais uma volta e volte ao ponto inicial: a rota continua aberta e nada se perde.',
+      ok: 'CONTINUAR CAMINHANDO', cancel: 'FINALIZAR MESMO ASSIM',
+    });
+    if (segue) return;
+  }
   const payload = session.finish(SIM ? simT : Date.now());
   payload.sessao = sessaoServidor;
   sessaoServidor = null;
