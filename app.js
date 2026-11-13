@@ -1,15 +1,15 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=18';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=19';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=18';
-import * as api from './api.js?v=18';
+} from './player.js?v=19';
+import * as api from './api.js?v=19';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=18';
+} from './progresso.js?v=19';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -95,7 +95,7 @@ const MOTIVOS = {
   inicio_diferente: 'O começo do trajeto não bate com o lugar onde a rota foi aberta.',
   rapido_demais: 'Espere alguns minutos entre uma conquista e outra.',
   limite_diario: 'Você chegou ao limite de conquistas por dia.',
-  sem_perfil: 'Essa conta existe, mas ficou sem perfil. Use CRIAR CONTA com o mesmo apelido e PIN para terminar o cadastro.',
+  sem_perfil: 'Essa conta existe e o PIN está certo, mas o cadastro ficou pela metade. Volte e use CRIAR CONTA com o MESMO apelido e PIN, e um código de convite ainda não usado.',
   sem_servidor: 'O servidor ainda não está ligado: a rota ficou guardada neste aparelho.',
   rede: 'Não deu para falar com o servidor. Confira a internet e tente de novo.',
   rede_rota: 'Não deu para falar com o servidor. A rota ficou guardada e será reenviada sozinha.',
@@ -277,7 +277,11 @@ async function concluir() {
   b.disabled = false; b.textContent = 'ENTRAR NO MAPA';
   if (!r.ok) {
     irPara('criar');
-    erro('cri-erro', MOTIVOS[r.motivo] || r.detalhe || 'Não foi possível criar a conta.');
+    // Mostra o código cru quando a causa é desconhecida: sem ele, não dá para
+    // saber o que o servidor recusou olhando só a tela.
+    erro('cri-erro', MOTIVOS[r.motivo]
+      || `Não foi possível criar a conta. Código do servidor: ${r.motivo || 'sem resposta'}`
+      + (r.detalhe ? ` — ${r.detalhe}` : ''));
     return;
   }
   perfil = { ...rascunho, ...r.perfil };
@@ -331,7 +335,12 @@ ui.onb.addEventListener('click', (e) => {
     b.disabled = true; b.textContent = 'ENTRANDO…';
     api.entrar($('ent-nome').value.trim().toUpperCase(), $('ent-pin').value).then(async (r) => {
       b.disabled = false; b.textContent = 'ENTRAR';
-      if (!r.ok) { erro('ent-erro', MOTIVOS[r.motivo] || r.detalhe || 'Não foi possível entrar.'); return; }
+      if (!r.ok) {
+        erro('ent-erro', MOTIVOS[r.motivo]
+          || `Não foi possível entrar. Código do servidor: ${r.motivo || 'sem resposta'}`
+          + (r.detalhe ? ` — ${r.detalhe}` : ''));
+        return;
+      }
       erro('ent-erro', '');
       perfil = { ...perfilVazio(), ...r.perfil };
       salvarPerfil(perfil);
