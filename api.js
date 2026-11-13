@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=21';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 

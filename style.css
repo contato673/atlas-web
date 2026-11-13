@@ -488,3 +488,5 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .ficha-arte .ten { position: absolute; inset: 14px; display: grid; place-items: center; }
 .ficha-arte .ten svg { width: 100%; height: auto; }
 #m-arte { display: grid; place-items: center; margin-bottom: 10px; line-height: 0; }
+/* aviso dentro da estante ocupa a linha inteira, não uma célula de 68px */
+.estante > p { grid-column: 1 / -1; margin: 4px 0; }

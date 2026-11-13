@@ -42,7 +42,7 @@ const GLIFOS = {
 };
 
 const MEDALHA_GLIFO = {
-  fundador: 'coroa',
+  fundador: 'coroa', pioneiro: 'estrela',
   primeiro_passo: 'passo', topografo: 'poligono', cartografo: 'poligono', agrimensor: 'poligono',
   hectare: 'area', dez_hectares: 'area', quilometro2: 'globo',
   grande_cerco: 'cerco', cerco_colossal: 'cerco',
