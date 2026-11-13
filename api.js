@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=19';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -76,7 +76,9 @@ export async function entrar(apelido, pin) {
   } catch (e) {
     return { ok: false, motivo: e.status === 400 ? 'pin' : 'rede', detalhe: e.message };
   }
-  const perfil = await meuPerfil();
+  let perfil;
+  try { perfil = await meuPerfil(); }
+  catch (e) { return { ok: false, motivo: 'rede', detalhe: e.message }; }
   if (!perfil) return { ok: false, motivo: 'sem_perfil' };
   return { ok: true, perfil };
 }
@@ -132,10 +134,11 @@ export async function meuPerfil() {
   if (!temServidor || !temSessao()) return null;
   const u = meuId();
   if (!u) return null;   // sem o id não dá para saber qual perfil é o meu
-  try {
-    const d = await chamar(`/rest/v1/perfis?select=apelido,faccao,modelo,cor,cenario&id=eq.${u}&limit=1`);
-    return d && d[0] ? d[0] : null;
-  } catch { return null; }
+  // select=* de propósito: pedir colunas pelo nome quebra o login inteiro
+  // sempre que o cliente ganha um campo antes de o banco ganhar a coluna.
+  // O erro NÃO é engolido: falha de rede não pode virar "conta sem perfil".
+  const d = await chamar(`/rest/v1/perfis?select=*&id=eq.${u}&limit=1`);
+  return d && d[0] ? d[0] : null;
 }
 
 export async function salvarVisual({ modelo, cor, cenario }) {
@@ -145,7 +148,13 @@ export async function salvarVisual({ modelo, cor, cenario }) {
   try {
     const u = meuId();
     if (!u) return { ok: false, detalhe: 'sem sessão' };
-    await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor, cenario } });
+    try {
+      await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor, cenario } });
+    } catch (e) {
+      // banco ainda sem a coluna de cenário: grava o resto em vez de falhar
+      if (e.status !== 400) throw e;
+      await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor } });
+    }
     return { ok: true };
   } catch (e) { return { ok: false, detalhe: e.message }; }
 }

@@ -1,15 +1,15 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=19';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=20';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=19';
-import * as api from './api.js?v=19';
+} from './player.js?v=20';
+import * as api from './api.js?v=20';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=19';
+} from './progresso.js?v=20';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
