@@ -30,95 +30,99 @@ export const ROUPAS = [
   { id: 'jaqueta',  nome: 'Jaqueta Tática', desc: 'Gola alta e ombreiras' },
 ];
 
-// Geometria de cada modelo, em um quadro de 64 x 40 (perfil, virado para a direita).
-const FORMAS = {
-  runner: {
-    contorno: 'M8.6,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 L8.2,16 C8.2,12.2 10,10.6 13.4,10.2 L18.6,9.6 C21,9.4 21.8,10.8 21.8,13 L22.6,17.4 C28,17.9 36,18.9 44,20.4 C50,21.5 55,22.6 58,24.6 C60.8,26.4 62,28.6 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 Z',
-    sola: 'M8.2,28.6 C20,30.2 40,30 61.3,27.4 C62,28.9 61.6,29.9 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 L12.5,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 Z',
-    entressola: 'M8.3,28.8 C20,30.4 40,30.2 61,27.6',
-    colarinho: 'M15.8,10.3 C18.6,9.7 21,10.2 21.8,12.3 C20.2,13.2 17.6,13.6 15.8,13 C14.5,12.5 14.5,10.6 15.8,10.3 Z',
-    lingua: 'M21.9,12.9 L25,11.8 L26.2,17 L22.7,17.5 Z',
-    painel: 'M13.8,25.6 C20.4,24.4 27.4,22.2 33.8,20.2 C39,18.7 44.4,18.7 48,20',
-    cadarcos: [[25, 13.3, 26.8, 16.9], [27.9, 14.3, 29.5, 17.7], [30.7, 15.3, 32.1, 18.5]],
-    calcanhar: 'M8.9,12.4 L11.3,12.4 L11.3,20 L8.9,20 Z',
-  },
-  hitop: {
-    contorno: 'M8.6,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 L8.2,9 C8.2,5.2 10.2,3.6 13.8,3.5 L18.8,3.5 C21.3,3.5 22.1,5.2 22.1,7.6 L22.1,13.2 L22.7,17.5 C28,18 36,19 44,20.5 C50,21.6 55,22.7 58,24.7 C60.8,26.5 62,28.6 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 Z',
-    sola: 'M8.2,28.6 C20,30.2 40,30 61.3,27.4 C62,28.9 61.6,29.9 60.6,30.8 C59,32.8 55.6,33.8 51,33.9 L12.5,33.9 C9.6,33.9 8.2,32.6 8.2,30.6 Z',
-    entressola: 'M8.3,28.8 C20,30.4 40,30.2 61,27.6',
-    colarinho: 'M9.6,5 C13,3.3 18.4,3.3 21.6,5 C19.4,7 11.8,7.2 9.6,5 Z',
-    lingua: 'M22.2,7.8 L25.2,6.7 L26.2,16.8 L22.7,17.4 Z',
-    painel: 'M13.8,25.6 C20.4,24.4 27.4,22.2 33.8,20.2 C39,18.7 44.4,18.7 48,20',
-    cadarcos: [[12.4, 9, 21.7, 9.4], [12.4, 12.6, 21.9, 13], [12.8, 16.2, 22.4, 16.4]],
-    calcanhar: 'M8.9,19 L11.3,19 L11.3,25.6 L8.9,25.6 Z',
-  },
-  chunky: {
-    contorno: 'M8,34.9 C8.4,34.9 6.4,33.4 6.4,30.6 L6.4,14 C6.4,10.2 8.4,8.6 12,8.2 L18.2,7.5 C20.8,7.3 21.9,8.8 21.9,11.2 L22.7,15.6 C28,16.1 36,17.1 44.4,18.6 C50.4,19.7 55.6,20.6 59,22.4 C62.4,24.2 64.2,27.4 62.6,30.6 C61,33.4 56.6,34.8 51,34.9 Z',
-    sola: 'M6.4,26.6 C20,28.8 42,28.6 62.4,24.6 C64.4,26.6 64.2,28.6 62.6,30.6 C61,33.4 56.6,34.8 51,34.9 L11.6,34.9 C8.4,34.9 6.4,33.4 6.4,30.6 Z',
-    entressola: 'M6.5,26.8 C20,29 42,28.8 62.2,24.8',
-    colarinho: 'M15.6,8.2 C18.6,7.6 21.1,8.1 21.9,10.4 C20.2,11.4 17.4,11.8 15.6,11.2 C14.2,10.6 14.2,8.5 15.6,8.2 Z',
-    lingua: 'M22,11 L25.2,9.9 L26.4,15.3 L22.8,15.8 Z',
-    painel: 'M12.4,23.2 C19.4,22 26.8,19.8 33.6,17.8 C39,16.3 44.8,16.3 48.6,17.6',
-    cadarcos: [[25.1, 11.4, 26.9, 15.1], [28, 12.4, 29.6, 15.9], [30.8, 13.4, 32.2, 16.7]],
-    calcanhar: 'M7.2,10.4 L9.6,10.4 L9.6,18.4 L7.2,18.4 Z',
-  },
+const P = {
+  peleL: '#e2b78f', pele: '#c89a72', peleS: '#9e7249',
+  panoL: '#2d3f54', pano: '#1f2d3d', panoS: '#121b26',
+  calcaL: '#2a384a', calca: '#1d2836', calcaS: '#121a24',
+  sapatoL: '#1a2531', sapato: '#0e151e',
+  cabeloL: '#2a3747', cabelo: '#161e29',
+  linha: '#0a0f16',
 };
 
-let uid = 0;
+function cabeca(fac, cor) {
+  return `
+    <g>
+      <path d="M53 57h14v9H53z" fill="${P.peleS}"/>
+      <path d="M53 57h6v9h-6z" fill="${P.pele}"/>
+      <ellipse cx="60" cy="40" rx="19" ry="19.5" fill="${P.pele}"/>
+      <path d="M60 20.5a19 19.5 0 0 1 0 39 19 19.5 0 0 0 0-39z" fill="${P.peleS}" opacity=".55"/>
+      <ellipse cx="52" cy="38" rx="9" ry="12" fill="${P.peleL}" opacity=".45"/>
+      <path d="M41 45q-3.5 0-3.5-4.5T41 36z" fill="${P.pele}"/>
+      <path d="M79 45q3.5 0 3.5-4.5T79 36z" fill="${P.peleS}"/>
+      <path d="M41.2 38q0-18 18.8-18T79 38q-2.5-7.5-18.9-7.5T41.2 38z" fill="${P.cabelo}"/>
+      <path d="M44 24q14-8 28 0-9-4.5-14-4.5T44 24z" fill="${P.cabeloL}" opacity=".7"/>
+      <path d="M42 25.5q18-12.5 36 0 2 7.5.6 12.5-4-8.5-18.6-8.5T41.4 38Q40 33 42 25.5z" fill="${fac}"/>
+      <path d="M60 21.2q9.5 0 18 4.3 2 7.5.6 12.5-3.4-7.2-14.6-8.3z" fill="#000" opacity=".22"/>
+      <path d="M44 24.5q7-4 16-4" stroke="#fff" stroke-width="2" opacity=".28" fill="none" stroke-linecap="round"/>
+      <path d="M38.5 36.5h43q1 4-1.2 5H39.7q-2.2-1-1.2-5z" fill="${fac}"/>
+      <path d="M38.5 36.5h43q1 4-1.2 5H39.7q-2.2-1-1.2-5z" fill="#000" opacity=".3"/>
+      <path d="M38.5 36.5h22q.4 4-.6 5H39.7q-2.2-1-1.2-5z" fill="#fff" opacity=".12"/>
+      <ellipse cx="52.5" cy="46.5" rx="2.5" ry="2.7" fill="${P.linha}"/>
+      <ellipse cx="66.5" cy="46.5" rx="2.3" ry="2.6" fill="${P.linha}"/>
+      <circle cx="53.3" cy="45.7" r=".8" fill="#fff" opacity=".85"/>
+      <path d="M48.5 42q3-1.6 6-.4M64 41.6q3-1.2 6 .4" stroke="${P.cabelo}" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+      <path d="M58.5 50.5q1.5 1.5 3 0" stroke="${P.peleS}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M55 53.5q5 4 10.5.5" stroke="${P.linha}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M79 47.5q2.5-4 0-9" stroke="${cor}" stroke-width="1.6" fill="none" opacity=".75" stroke-linecap="round"/>
+    </g>`;
+}
 
-/**
- * Desenha o tênis como SVG.
- * cor: neon do jogador (vem do perfil). faccao: 'meridiano' | 'azimute'.
- */
-const PELE = '#c99a73', PELE_S = '#a97e5c';
-const CABELO = '#171f2a';
-const CALCA = '#202b39', CALCA_S = '#19222e';
-const SAPATO = '#0d141c';
+function pernas(cor) {
+  return `
+    <path d="M46 99h12l-1.5 30H45l1-30z" fill="${P.calca}"/>
+    <path d="M46 99h5l-1 30h-5l1-30z" fill="${P.calcaL}"/>
+    <path d="M62 99h12l1.5 30H63.5L62 99z" fill="${P.calcaS}"/>
+    <path d="M40.5 126h17.5l.6 8H39.2q-1.2-4 1.3-8z" fill="${P.sapato}"/>
+    <path d="M40.5 126h8l.3 8h-9.6q-1.2-4 1.3-8z" fill="${P.sapatoL}"/>
+    <path d="M63.4 126H81q2.5 4 1.3 8H62.8z" fill="${P.sapato}"/>
+    <path d="M39.2 131h19.5l.1 3H39q-.6-1.6.2-3zM62.9 131h19.3q.8 1.4.2 3H63z" fill="${cor}"/>`;
+}
 
-// Visto de cima e de frente, uns 50 graus: a cabeça cobre parte dos ombros,
-// os pés aparecem curtos. Proporção de boneco, para ler bem pequeno no mapa.
-function tronco(id, cor, fac) {
-  const comum = `
-    <path d="M44 128h14v8H42l2-8z" fill="${SAPATO}"/>
-    <path d="M62 128h14l2 8H62v-8z" fill="${SAPATO}"/>
-    <path d="M42 133h16v3H42zM62 133h16v3H62z" fill="${cor}" opacity=".95"/>
-    <path d="M47 100h11l-1 29H46l1-29z" fill="${CALCA}"/>
-    <path d="M62 100h11l1 29H63l-1-29z" fill="${CALCA_S}"/>`;
+function roupaDe(id, cor, fac) {
+  // Silhueta estreita: tronco de 42 a 78, mangas coladas de 33 a 42 e de 78 a 87.
+  // Ombro arredondado, cintura mais fina que o ombro, mão na ponta da manga.
+  const manga = `
+    <path d="M42 71q-7 1-9 6l-4 22q5 3 11 3l6-28z" fill="${P.panoL}"/>
+    <path d="M78 71q7 1 9 6l4 22q-5 3-11 3l-6-28z" fill="${P.panoS}"/>
+    <path d="M29 99q5 3 11 3l-1.5 7q-6-.5-11-3.5z" fill="${P.pele}"/>
+    <path d="M91 99q-5 3-11 3l1.5 7q6-.5 11-3.5z" fill="${P.peleS}"/>`;
 
   if (id === 'corredor') {
-    return comum + `
-      <path d="M41 66h38l4 34q-23 6-46 0l4-34z" fill="#18222e"/>
-      <path d="M41 66h38l1 7H40l1-7z" fill="${cor}"/>
-      <path d="M39 86h42v5H39z" fill="${cor}" opacity=".55"/>
-      <path d="M60 66v34" stroke="${fac}" stroke-width="2" opacity=".9"/>
-      <path d="M41 66l-9 5-5 26 10 4 8-31z" fill="#18222e"/>
-      <path d="M79 66l9 5 5 26-10 4-8-31z" fill="#18222e"/>
-      <path d="M28 95l9 3-1 6-10-3z" fill="${PELE}"/>
-      <path d="M92 95l-9 3 1 6 10-3z" fill="${PELE_S}"/>`;
+    return `
+      <path d="M48 66h24q6 1 6.5 6l1.5 29q-18 5-36 0l1.5-29q.5-5 6.5-6z" fill="${P.pano}"/>
+      <path d="M48 66h10l-2 36q-5-.4-9.5-1l1.5-29q.5-5 6.5-6z" fill="${P.panoL}"/>
+      <path d="M68 66h4q6 1 6.5 6l1.5 29q-4.5 1.2-9.5 1.8z" fill="${P.panoS}"/>
+      <path d="M44.6 73h31v5h-31z" fill="${cor}"/>
+      <path d="M44.6 73h9v5h-9z" fill="#fff" opacity=".3"/>
+      <path d="M43.6 88h33.6l.3 4.2H43.3z" fill="${cor}" opacity=".55"/>
+      <path d="M60 66v36" stroke="${fac}" stroke-width="1.8" opacity=".8"/>
+      ${manga}`;
   }
   if (id === 'jaqueta') {
-    return comum + `
-      <path d="M36 68h48l5 33q-29 7-58 0l5-33z" fill="#1b2633"/>
-      <path d="M51 67h18l-3 11H54l-3-11z" fill="${cor}"/>
-      <path d="M51 67h18l-1 4H52l-1-4z" fill="#000" opacity=".25"/>
-      <path d="M60 72v29" stroke="${cor}" stroke-width="2.6" opacity=".95"/>
-      <path d="M36 68l-11 6-5 25 11 4 9-30z" fill="#1b2633"/>
-      <path d="M84 68l11 6 5 25-11 4-9-30z" fill="#1b2633"/>
-      <path d="M30 70h14l2 9H28z" fill="${fac}" opacity=".85"/>
-      <path d="M76 70h14l2 9H74z" fill="${fac}" opacity=".85"/>
-      <path d="M21 97l10 3-1 6-11-3z" fill="${PELE}"/>
-      <path d="M99 97l-10 3 1 6 11-3z" fill="${PELE_S}"/>`;
+    return `
+      <path d="M46 66h28q7 1 7.5 7l1.5 29q-23 6-46 0L38.5 73q.5-6 7.5-7z" fill="${P.pano}"/>
+      <path d="M46 66h10l-2.5 37q-5.5-.5-11-1.5L38.5 73q.5-6 7.5-7z" fill="${P.panoL}"/>
+      <path d="M70 66h4q7 1 7.5 7l1.5 29q-5.5 1.4-12 2.2z" fill="${P.panoS}"/>
+      <path d="M52 64h16l-3 12H55z" fill="${cor}"/>
+      <path d="M52 64h6l-2 12h-3z" fill="#fff" opacity=".3"/>
+      <path d="M52 64h16l-.8 3H52.8z" fill="#000" opacity=".3"/>
+      <path d="M60 76v26" stroke="${cor}" stroke-width="2.2" opacity=".95"/>
+      <path d="M40 68q7-3 13-3l-1 9q-6 0-13 2z" fill="${fac}"/>
+      <path d="M40 68q5-2 9-2.6l-.7 8.6q-4.6.3-8.6 1.4z" fill="#fff" opacity=".18"/>
+      <path d="M80 68q-7-3-13-3l1 9q6 0 13 2z" fill="${fac}"/>
+      <path d="M80 68q-7-3-13-3l.3 2.4q6 .2 12 2.4z" fill="#000" opacity=".3"/>
+      ${manga}`;
   }
-  return comum + `
-    <path d="M40 67h40l4 34q-24 7-48 0l4-34z" fill="#16202b"/>
-    <path d="M40 67q20 12 40 0l-3-5q-17 9-34 0z" fill="#1e2a38"/>
-    <path d="M56 70v6M64 70v6" stroke="${cor}" stroke-width="2" stroke-linecap="round"/>
-    <path d="M60 78v23" stroke="${fac}" stroke-width="2" opacity=".7"/>
-    <path d="M44 100h32v6H44z" fill="#1e2a38"/>
-    <path d="M40 67l-10 5-5 26 10 4 9-31z" fill="#16202b"/>
-    <path d="M80 67l10 5 5 26-10 4-9-31z" fill="#16202b"/>
-    <path d="M26 96l9 3-1 6-10-3z" fill="${PELE}"/>
-    <path d="M94 96l-9 3 1 6 10-3z" fill="${PELE_S}"/>`;
+  return `
+    <path d="M47 66h26q6.5 1 7 6.5L82 102q-22 6-44 0l2-29.5q.5-5.5 7-6.5z" fill="${P.pano}"/>
+    <path d="M47 66h10l-2.5 37q-5.5-.5-11-1.5L38 72.5q.5-5.5 7-6.5z" fill="${P.panoL}"/>
+    <path d="M69 66h4q6.5 1 7 6.5L82 102q-5.5 1.4-12 2.2z" fill="${P.panoS}"/>
+    <path d="M44 66q16 10 32 0l-2.5-4.5q-13.5 7.5-27 0z" fill="${P.panoL}"/>
+    <path d="M60 66q8.5-1.6 16-4.5L73.5 57q-6.5 3.6-13.5 5z" fill="${P.panoS}" opacity=".85"/>
+    <path d="M56 69v6.5M64 69v6" stroke="${cor}" stroke-width="1.9" stroke-linecap="round"/>
+    <path d="M60 77v25" stroke="${fac}" stroke-width="1.8" opacity=".6"/>
+    <path d="M45 99h30l.4 5H44.6z" fill="${P.panoL}"/>
+    ${manga}`;
 }
 
 // Aceita tanto `roupa` quanto `modelo` (o nome da coluna no banco), e a
@@ -133,19 +137,25 @@ export function avatarSVG({
   return montarAvatar(peca, cor, corFac, largura, sombra);
 }
 
+// Contador de ids para os gradientes: dois SVGs na mesma página não podem
+// repetir id, senão um rouba o gradiente do outro. Era usado também pela logo
+// e pelos cenários, e foi apagado sem querer junto com a geometria do tênis.
+let uid = 0;
+let semente = 0;
 function montarAvatar(roupa, cor, faccao, largura, sombra) {
+  const id = `a${(semente += 1)}`;
   return `<svg viewBox="0 0 120 150" width="${largura}" height="${largura * 150 / 120}" class="avatar">
-    ${sombra ? '<ellipse cx="60" cy="139" rx="27" ry="7" fill="#000" opacity=".5"/>' : ''}
-    ${tronco(roupa, cor, faccao)}
-    <path d="M54 56h12v10H54z" fill="${PELE_S}"/>
-    <ellipse cx="60" cy="41" rx="19.5" ry="20" fill="${PELE}"/>
-    <path d="M40.5 41q0-20 19.5-20T79.5 41q-3-7-19.5-7T40.5 41z" fill="${CABELO}"/>
-    <path d="M41 25q19-13 38 0 2 8 .5 13-4-9-19.5-9T41.5 38Q40 33 41 25z" fill="${faccao}"/>
-    <path d="M38 36h44q1 4-1 5H39q-2-1-1-5z" fill="${faccao}"/>
-    <path d="M38 36h44q1 4-1 5H39q-2-1-1-5z" fill="#000" opacity=".2"/>
-    <circle cx="53" cy="47" r="2.4" fill="#0b1118"/>
-    <circle cx="67" cy="47" r="2.4" fill="#0b1118"/>
-    <path d="M55 54q5 3.5 10 0" stroke="#0b1118" stroke-width="1.9" fill="none" stroke-linecap="round"/>
+    <defs>
+      <radialGradient id="s${id}" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#000" stop-opacity=".6"/>
+        <stop offset="1" stop-color="#000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    ${sombra ? `<ellipse cx="60" cy="137" rx="30" ry="9" fill="url(#s${id})"/>` : ''}
+    ${pernas(cor)}
+    ${roupaDe(roupa, cor, faccao)}
+    ${cabeca(faccao, cor)}
+    <path d="M78 71q7 1 9 6l4 22" fill="none" stroke="${cor}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>
   </svg>`;
 }
 
