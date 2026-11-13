@@ -1,15 +1,15 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=23';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=24';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=23';
-import * as api from './api.js?v=23';
+} from './player.js?v=24';
+import * as api from './api.js?v=24';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=23';
+} from './progresso.js?v=24';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -80,7 +80,7 @@ const MOTIVOS = {
   poucos_pontos: 'O percurso teve leituras de GPS demais de menos para ser conferido.',
   nao_fechou: 'O percurso não voltou a até 20 m do ponto inicial.',
   nao_saiu_da_zona: 'Você não se afastou o bastante do ponto inicial.',
-  velocidade: 'Houve trecho acima de 25 km/h. Se não foi corrida nem carro, pode ter sido falha do GPS.',
+  velocidade: `Houve trecho acima de ${CONFIG.MAX_SPEED_KMH} km/h. Se não foi corrida nem veículo, pode ter sido falha do GPS.`,
   curta_demais: 'O percurso foi curto demais.',
   area_pequena: 'A área fechada ficou pequena demais.',
   circuito_invalido: 'O traçado não formou uma área fechada válida.',

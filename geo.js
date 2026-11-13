@@ -4,7 +4,7 @@
 export const CONFIG = {
   // --- Regras APROVADAS (documento mestre, seção 3.1) ---
   FINISH_RADIUS_M: 20, // retornar a até 20 m do ponto de partida
-  MAX_SPEED_KMH: 25, // limite de velocidade
+  MAX_SPEED_KMH: 20, // espelha vel_max_kmh do servidor. Mudar os dois juntos.
 
   // --- PROPOSTAS, não aprovadas (seção 10: pendências). Ajustar após testes de campo. ---
   LEAVE_RADIUS_M: 40, // espelha raio_saida_m do servidor. Mudar os dois juntos:
