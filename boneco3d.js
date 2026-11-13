@@ -89,11 +89,11 @@ export function montarCorpo(cores) {
   // ---- pernas: pivo no quadril, para a rotacao parecer perna
   const perna = (lado) => {
     const p = new THREE.Group();
-    const coxa = cone(0.3, 0.24, 1.15, mCalca, 6);
+    const coxa = cone(0.33, 0.26, 1.15, mCalca, 6);
     coxa.position.y = -0.58;
     // faixa em volta da perna, e nao uma pedra na frente: a pedra lia como
     // um coracao neon flutuando no ar.
-    const joelheira = cone(0.27, 0.27, 0.09, mNeon, 6);
+    const joelheira = cone(0.3, 0.3, 0.09, mNeon, 6);
     joelheira.position.y = -0.6;
     const bota = caixa(0.5, 0.56, 0.82, mBota);
     bota.position.set(0, -1.5, 0.08);
@@ -130,9 +130,9 @@ export function montarCorpo(cores) {
   const ventoD = vento.clone();
   ventoD.position.x = 0.2;
   const ombreira = (lado) => {
-    const o = pedra(0.44, mCapacete, 0);
+    const o = pedra(0.39, mCapacete, 0);
     o.scale.set(1, 0.68, 1);
-    o.position.set(lado * 0.9, 1.35, 0);
+    o.position.set(lado * 0.86, 1.36, 0);
     o.rotation.z = lado * rad(-14);
     return o;
   };
@@ -186,10 +186,10 @@ export function montarCorpo(cores) {
   // crista no alto do capacete, da testa para a nuca: e o que da silhueta.
   // A antena lateral anterior virava um ponto solto no ar, porque a haste
   // escura sumia no fundo escuro e so a ponta acesa aparecia.
-  const crista = caixa(0.09, 0.26, 0.46, mNeon);
-  crista.position.set(0, 1.5, -0.02);
-  const cristaBase = caixa(0.15, 0.16, 0.54, mCapacete);
-  cristaBase.position.set(0, 1.4, -0.02);
+  const crista = caixa(0.09, 0.42, 0.5, mNeon);
+  crista.position.set(0, 1.62, -0.02);
+  const cristaBase = caixa(0.15, 0.3, 0.58, mCapacete);
+  cristaBase.position.set(0, 1.46, -0.02);
   cabeca.add(gola, cranio, queixo, calota, moldura, viseira, barbicha, cristaBase, crista);
   cabeca.position.y = PESCOCO;
 
