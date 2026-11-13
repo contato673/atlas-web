@@ -115,11 +115,11 @@ export function montarCorpo(cores) {
   const cinto = cone(0.6, 0.6, 0.16, mInterno, 8);
   cinto.position.y = 0.1;
   const fivela = caixa(0.26, 0.14, 0.1, mNeon);
-  fivela.position.set(0, 0.1, 0.58);
+  fivela.position.set(0, 0.1, 0.61);
   // V aceso no peito: le a silhueta de longe melhor que qualquer detalhe fino
   const galao = (lado) => {
     const c = caixa(0.56, 0.11, 0.1, mNeon);
-    c.position.set(lado * 0.2, 1.0, 0.56);
+    c.position.set(lado * 0.2, 1.08, 0.8);
     c.rotation.z = lado * rad(28);
     return c;
   };
@@ -186,10 +186,10 @@ export function montarCorpo(cores) {
   // crista no alto do capacete, da testa para a nuca: e o que da silhueta.
   // A antena lateral anterior virava um ponto solto no ar, porque a haste
   // escura sumia no fundo escuro e so a ponta acesa aparecia.
-  const crista = caixa(0.09, 0.24, 0.7, mNeon);
-  crista.position.set(0, 1.28, -0.04);
-  const cristaBase = caixa(0.14, 0.14, 0.78, mCapacete);
-  cristaBase.position.set(0, 1.2, -0.04);
+  const crista = caixa(0.09, 0.26, 0.46, mNeon);
+  crista.position.set(0, 1.5, -0.02);
+  const cristaBase = caixa(0.15, 0.16, 0.54, mCapacete);
+  cristaBase.position.set(0, 1.4, -0.02);
   cabeca.add(gola, cranio, queixo, calota, moldura, viseira, barbicha, cristaBase, crista);
   cabeca.position.y = PESCOCO;
 

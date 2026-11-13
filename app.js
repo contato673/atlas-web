@@ -2,17 +2,17 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=35';
+} from './geo.js?v=36';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=35';
-import * as api from './api.js?v=35';
+} from './player.js?v=36';
+import * as api from './api.js?v=36';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=35';
+} from './progresso.js?v=36';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -822,7 +822,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=35');
+    const mod = await import('./boneco3d.js?v=36');
     boneco3d = await mod.criarBoneco(tela, coresDoBoneco());
     tela.hidden = false;
     if (marker) marker.getElement().classList.add('tem3d');
