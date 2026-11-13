@@ -194,11 +194,17 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .campo input:focus { outline: 0; border-color: var(--neon); box-shadow: 0 0 22px color-mix(in srgb, var(--neon) 22%, transparent); }
 
 /* palco do tênis, com o cenário atrás */
-.palco { position: relative; display: grid; place-items: center; padding: 6px 0 14px; }
-#cenario-fundo { position: absolute; inset: 0; display: grid; place-items: center; line-height: 0; }
-#cenario-fundo svg { width: min(78vw, 300px); height: auto; border-radius: 50%; }
-#preview { position: relative; line-height: 0; margin-top: -6px; animation: flutua 3.6s ease-in-out infinite; }
-#preview svg { width: min(62vw, 236px); height: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.6)); }
+/* O palco é um quadrado do tamanho do disco. Sem altura própria, o cenário
+   ficava absoluto sobre o conteúdo de baixo e cobria a lista de modelos. */
+.palco {
+  position: relative; display: grid; place-items: center;
+  width: min(56vw, 210px); height: min(56vw, 210px);
+  margin: 4px auto 14px; padding: 0;
+}
+#cenario-fundo { position: absolute; inset: 0; line-height: 0; }
+#cenario-fundo svg { width: 100%; height: 100%; border-radius: 50%; }
+#preview { position: relative; line-height: 0; animation: flutua 3.6s ease-in-out infinite; }
+#preview svg { width: min(44vw, 165px); height: auto; filter: drop-shadow(0 8px 14px rgba(0,0,0,.6)); }
 @keyframes flutua { 50% { transform: translateY(-7px); } }
 
 .opt-tit { display: block; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
