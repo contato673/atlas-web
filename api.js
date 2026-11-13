@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=24';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=25';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -274,4 +274,68 @@ export async function buscarCatalogo() {
   if (!temServidor || !temSessao()) return [];
   try { return (await chamar('/rest/v1/medalhas?select=*&order=ordem')) || []; }
   catch { return []; }
+}
+
+/* ===================== fotos do território ===================== */
+// O armazenamento não é o PostgREST: manda o arquivo cru, não JSON.
+async function arquivo(caminho, { metodo = 'GET', corpo, tipo, prazo = 30000 } = {}) {
+  if (!sessao || !sessao.access_token) throw new Error('Sem sessão.');
+  const h = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${sessao.access_token}` };
+  if (tipo) h['Content-Type'] = tipo;
+  if (metodo === 'POST') h['x-upsert'] = 'true';
+  const freio = new AbortController();
+  const relogio = setTimeout(() => freio.abort(), prazo);
+  let r;
+  try {
+    r = await fetch(SUPABASE_URL + caminho, { method: metodo, headers: h, body: corpo, signal: freio.signal });
+  } catch (e) {
+    throw new Error(e && e.name === 'AbortError' ? 'A foto demorou demais para subir.' : 'Sem conexão com o servidor.');
+  } finally { clearTimeout(relogio); }
+  if (!r.ok) {
+    const e = new Error(`Erro ${r.status} no armazenamento`);
+    e.status = r.status;
+    throw e;
+  }
+  return r;
+}
+
+export async function ultimaConquista() {
+  if (!temServidor || !temSessao()) return null;
+  try { return await chamar('/rest/v1/rpc/minha_ultima_conquista', { metodo: 'POST', corpo: {} }); }
+  catch { return null; }
+}
+
+export async function enviarFoto(idConquista, blob) {
+  const u = meuId();
+  if (!u) return { ok: false, motivo: 'sem_login' };
+  const caminho = `${u}/${idConquista}.jpg`;
+  await arquivo(`/storage/v1/object/fotos/${caminho}`, { metodo: 'POST', corpo: blob, tipo: 'image/jpeg' });
+  return await chamar('/rest/v1/rpc/salvar_foto', {
+    metodo: 'POST', corpo: { p_conquista: idConquista, p_caminho: caminho }, prazo: 20000,
+  });
+}
+
+export async function baixarFoto(caminho) {
+  const r = await arquivo(`/storage/v1/object/authenticated/fotos/${caminho}`);
+  return URL.createObjectURL(await r.blob());
+}
+
+// Faxina: o banco diz o que pode sumir, o app apaga o arquivo e confirma.
+// Qualquer jogador com o app aberto ajuda, e a política do armazenamento só
+// libera o que já estiver marcado como órfão.
+export async function faxinaFotos() {
+  if (!temServidor || !temSessao()) return 0;
+  let lista;
+  try { lista = await chamar('/rest/v1/rpc/fotos_para_apagar', { metodo: 'POST', corpo: {} }); }
+  catch { return 0; }
+  if (!Array.isArray(lista) || !lista.length) return 0;
+  const idas = [];
+  for (const caminho of lista) {
+    try { await arquivo(`/storage/v1/object/fotos/${caminho}`, { metodo: 'DELETE' }); idas.push(caminho); }
+    catch (e) { if (e.status === 404 || e.status === 400) idas.push(caminho); }
+  }
+  if (!idas.length) return 0;
+  try { await chamar('/rest/v1/rpc/fotos_apagadas', { metodo: 'POST', corpo: { p_caminhos: idas } }); }
+  catch { /* fica na fila para a próxima */ }
+  return idas.length;
 }

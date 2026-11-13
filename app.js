@@ -1,15 +1,15 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=24';
+import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=25';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=24';
-import * as api from './api.js?v=24';
+} from './player.js?v=25';
+import * as api from './api.js?v=25';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=24';
+} from './progresso.js?v=25';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -448,20 +448,24 @@ function banner(msg) {
   ui.banner.hidden = !msg;
 }
 
-function ask({ title, text, ok, cancel, danger, numeros, arte, extra }) {
+function ask({ title, text, ok, cancel, danger, numeros, arte, extra, extra2 }) {
   return new Promise((resolve) => {
     const bArte = $('m-arte');
     bArte.hidden = !arte;
     bArte.innerHTML = arte || '';
-    const bEx = $('m-extra');
-    bEx.hidden = !extra;
-    if (extra) {
-      bEx.textContent = extra.rotulo;
-      bEx.onclick = async () => {
-        bEx.disabled = true;
-        try { await extra.acao(); } finally { bEx.disabled = false; }
+    const ligar = (id, cfg) => {
+      const b = $(id);
+      b.hidden = !cfg;
+      if (!cfg) { b.onclick = null; return; }
+      b.textContent = cfg.rotulo;
+      b.disabled = false;
+      b.onclick = async () => {
+        b.disabled = true;
+        try { await cfg.acao(); } finally { b.disabled = false; }
       };
-    } else bEx.onclick = null;
+    };
+    ligar('m-extra', extra);
+    ligar('m-extra2', extra2);
     ui.mTitle.textContent = title;
     ui.mText.textContent = text;
     const bloco = $('m-num');
@@ -474,7 +478,8 @@ function ask({ title, text, ok, cancel, danger, numeros, arte, extra }) {
     ui.modal.hidden = false;
     const close = (v) => {
       ui.modal.hidden = true;
-      ui.mOk.onclick = ui.mCancel.onclick = $('m-extra').onclick = null;
+      ui.mOk.onclick = ui.mCancel.onclick = null;
+      $('m-extra').onclick = $('m-extra2').onclick = null;
       resolve(v);
     };
     ui.mOk.onclick = () => close(true);
@@ -643,6 +648,79 @@ function drawAll() {
 }
 
 
+
+/* ===================== foto do território ===================== */
+// A foto é reduzida e reescrita aqui antes de subir. Além de economizar
+// rede, passar pelo canvas apaga os metadados do arquivo original —
+// inclusive a coordenada de GPS que a câmera grava na foto.
+function encolherFoto(file, lado = 1280, qualidade = 0.82) {
+  return new Promise((pronto, falhou) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const esc = Math.min(1, lado / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * esc);
+      c.height = Math.round(img.height * esc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => (b ? pronto(b) : falhou(new Error('Não deu para preparar a foto.'))), 'image/jpeg', qualidade);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); falhou(new Error('Não deu para ler a foto.')); };
+    img.src = url;
+  });
+}
+
+function pedirFoto() {
+  return new Promise((pronto) => {
+    const inp = $('camera');
+    inp.value = '';
+    const fim = () => { inp.onchange = null; };
+    inp.onchange = () => { const f = inp.files && inp.files[0]; fim(); pronto(f || null); };
+    inp.click();
+  });
+}
+
+async function tirarFotoDoTerritorio() {
+  const file = await pedirFoto();
+  if (!file) return;
+  const alvo = await api.ultimaConquista();
+  if (!alvo || !alvo.id) { toast('Não achei a conquista para pendurar a foto.', 5000); return; }
+  toast('Preparando a foto…', 2500);
+  try {
+    const blob = await encolherFoto(file);
+    const r = await api.enviarFoto(alvo.id, blob);
+    if (r && r.ok) {
+      tremer(VIB.conquista);
+      toast('Foto guardada neste território.', 4000);
+      await atualizarMapa();
+    } else {
+      toast(`A foto não foi guardada: ${(r && r.motivo) || 'motivo desconhecido'}`, 6000);
+    }
+  } catch (e) {
+    toast(e.message || 'Não deu para enviar a foto.', 6000);
+  }
+}
+
+// As fotos chegam pelo mapa como caminho; o arquivo em si só vem quando
+// alguém abre a ficha, e com o token — o balde não é público.
+const fotosNaTela = new Map();
+async function pintarFotos(raiz) {
+  for (const alvo of raiz.querySelectorAll('[data-foto]')) {
+    const caminho = alvo.dataset.foto;
+    try {
+      if (!fotosNaTela.has(caminho)) fotosNaTela.set(caminho, await api.baixarFoto(caminho));
+      const img = document.createElement('img');
+      img.className = alvo.classList.contains('grande') ? 'foto-grande' : 'foto-mini';
+      img.alt = 'Foto do território';
+      img.src = fotosNaTela.get(caminho);
+      alvo.replaceWith(img);
+    } catch {
+      alvo.textContent = '!';
+    }
+  }
+}
+
 /* ===================== ficha: território e jogador ===================== */
 function abrirFicha(html) {
   $('ficha-corpo').innerHTML = html;
@@ -669,13 +747,18 @@ function abrirTerritorio(props) {
     const nome = (d && d.apelido) || String(d);
     const a = Number(d && d.area) || 0;
     const pc = area > 0 && a > 0 ? `${Math.max(1, Math.round((a / area) * 100))}%` : '';
-    return `<li><span class="nm" data-jog="${nome}">${nome}</span>
+    const foto = d && d.foto
+      ? `<span class="foto-mini" data-foto="${d.foto}"></span>`
+      : '<span class="foto-vazia">·</span>';
+    return `<li>${foto}<span class="nm" data-jog="${nome}">${nome}</span>
       <span class="m2">${a > 0 ? fmtArea(a) : ''}</span><span class="pc">${pc}</span></li>`;
   }).join('');
   abrirFicha(`<h3 class="ficha-tit">${fmtArea(area)}</h3>
     <p class="ficha-sub" style="color:${f.cor}">Bloco ${f.nome}</p>
     <ul class="ficha-donos">${linhas || '<li>Território sem dono registrado.</li>'}</ul>
-    <p class="nota">Toque num apelido para ver o perfil e as medalhas.</p>`);
+    <p class="nota">Toque num apelido para ver o perfil e as medalhas.</p>
+    <p class="foto-nota">A foto vive enquanto o território for do time. Tomado pelo outro lado, ela some daqui e do servidor.</p>`);
+  pintarFotos($('ficha-corpo'));
 }
 
 async function abrirJogador(apelido) {
@@ -1070,6 +1153,10 @@ ui.finish.onclick = async () => {
       text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
       ok: 'VOLTAR AO MAPA',
       extra: {
+        rotulo: 'FOTO DO LUGAR',
+        acao: tirarFotoDoTerritorio,
+      },
+      extra2: {
         rotulo: 'CARTÃO',
         acao: async () => {
           const blob = await cartaoConquista({
@@ -1186,6 +1273,7 @@ function entrarNoJogo() {
   atualizarMarcador();
   atualizarMapa();
   atualizarProgresso();
+  api.faxinaFotos();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
 }
 

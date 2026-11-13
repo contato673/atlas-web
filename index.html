@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=24">
+  <link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
 
@@ -245,6 +245,7 @@
       <div class="row">
         <button id="m-cancel" class="btn ghost"></button>
         <button id="m-extra" class="btn ghost" hidden></button>
+        <button id="m-extra2" class="btn ghost" hidden></button>
         <button id="m-ok" class="btn primary"></button>
       </div>
     </div>
@@ -258,9 +259,11 @@
     </div>
   </div>
 
+  <input id="camera" type="file" accept="image/*" capture="environment" hidden>
+
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=24"></script>
+  <script type="module" src="app.js?v=25"></script>
 </body>
 </html>
