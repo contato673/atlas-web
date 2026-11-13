@@ -581,27 +581,33 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .ficha-donos .av svg { width: 100%; height: auto; }
 
 /* ===================== o boneco se mexe ===================== */
-/* Parado ele respira; andando, balança o corpo com o peso trocando de pé.
-   A origem fica no chão, senão a animação parece que ele flutua. */
+/* Parado: quase nada. Um sopro de 4 s que só tira a cara de estátua — se
+   der para perceber o movimento, está forte demais.
+   Andando: sobe e desce, dois passos por ciclo, com um agachamento curto na
+   hora em que o pé encosta. SEM girar de um lado para o outro: rotação
+   alternada vira metrônomo, que foi o defeito da primeira versão. */
 .me-marker .me-shoe .avatar {
   transform-origin: 50% 100%;
-  animation: respira 3.2s ease-in-out infinite;
+  animation: respira 4s ease-in-out infinite;
+  will-change: transform;
 }
 .me-marker.andando .me-shoe .avatar {
-  animation: caminha .62s ease-in-out infinite;
+  animation: caminha .68s linear infinite;
 }
 .me-marker.virado .me-shoe { transform: translateX(-50%) scaleX(-1); }
 
 @keyframes respira {
   0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(-1px) scaleY(1.018); }
+  50% { transform: translateY(-0.5px) scaleY(1.008); }
 }
 @keyframes caminha {
-  0%   { transform: translateY(0) rotate(-1.4deg); }
-  25%  { transform: translateY(-2.5px) rotate(0deg) scaleY(1.01); }
-  50%  { transform: translateY(0) rotate(1.4deg); }
-  75%  { transform: translateY(-2.5px) rotate(0deg) scaleY(1.01); }
-  100% { transform: translateY(0) rotate(-1.4deg); }
+  0%   { transform: translateY(0) scaleY(0.985); }
+  18%  { transform: translateY(-3px) scaleY(1.005); }
+  48%  { transform: translateY(-0.5px) scaleY(1); }
+  50%  { transform: translateY(0) scaleY(0.985); }
+  68%  { transform: translateY(-3px) scaleY(1.005); }
+  98%  { transform: translateY(-0.5px) scaleY(1); }
+  100% { transform: translateY(0) scaleY(0.985); }
 }
 
 @media (prefers-reduced-motion: reduce) {

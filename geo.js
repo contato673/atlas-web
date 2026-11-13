@@ -189,3 +189,56 @@ export class RouteSession {
     return s;
   }
 }
+
+
+/* ===================== andando ou parado ===================== */
+// Terceira vez que um limiar fixo contra ruído de GPS dá problema, então esta
+// lógica mora aqui, com teste. A regra: o limiar ACOMPANHA o erro do GPS.
+// Parado com ±13 m de precisão, o aparelho pula vários metros sozinho; um
+// limiar de 1,2 m fazia o boneco "andar" o tempo todo e espelhar para os dois
+// lados, porque a longitude oscilava.
+export const MOVIMENTO = {
+  PISO_M: 6,          // nunca exige menos que isto
+  FATOR_ERRO: 0.9,    // e nunca menos que 0,9 x o erro do GPS
+  PARA_APOS_MS: 5000, // some do estado "andando" depois disto quieto
+  DERIVA_MS: 8000,    // sem sair do lugar, a referência acompanha a deriva
+};
+
+export class DetectorDeMovimento {
+  constructor(cfg = {}) {
+    this.cfg = { ...MOVIMENTO, ...cfg };
+    this.ref = null;
+    // -Infinity, não 0: com 0 o boneco nasce "andando" até o relógio passar
+    // dos 5 s. No app isso não aparecia porque o relógio é grande, mas é
+    // defeito de verdade — o teste pegou.
+    this.paradoDesde = -Infinity;
+    this.olhandoPara = 0; // -1 esquerda, 1 direita, 0 indefinido
+  }
+
+  // Devolve { andando, olhandoPara, limiar }
+  ver(p) {
+    const agora = p.t || Date.now();
+    const erro = Math.max(p.acc || 15, this.cfg.PISO_M);
+    const limiar = Math.max(this.cfg.PISO_M, erro * this.cfg.FATOR_ERRO);
+
+    if (!this.ref) this.ref = { ...p, t: agora };
+    const afastou = haversine(this.ref, p);
+
+    if (afastou > limiar) {
+      this.paradoDesde = agora;
+      // a direção só muda quando o deslocamento é claramente horizontal
+      if (Math.abs(p.lng - this.ref.lng) > Math.abs(p.lat - this.ref.lat) * 0.5) {
+        this.olhandoPara = p.lng < this.ref.lng ? -1 : 1;
+      }
+      this.ref = { ...p, t: agora };
+    } else if (agora - this.ref.t > this.cfg.DERIVA_MS) {
+      this.ref = { ...p, t: agora };
+    }
+
+    return {
+      andando: agora - this.paradoDesde < this.cfg.PARA_APOS_MS,
+      olhandoPara: this.olhandoPara,
+      limiar,
+    };
+  }
+}

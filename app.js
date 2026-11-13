@@ -1,16 +1,18 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=31';
+import {
+  CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
+} from './geo.js?v=32';
 import {
   FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=31';
-import * as api from './api.js?v=31';
+} from './player.js?v=32';
+import * as api from './api.js?v=32';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=31';
+} from './progresso.js?v=32';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -1282,28 +1284,14 @@ $('painel').addEventListener('click', (e) => { if (e.target.id === 'painel') $('
 
 /* ===================== GPS ===================== */
 let firstFix = true;
-let fixAnterior = null;
-let paradoDesde = 0;
+const detector = new DetectorDeMovimento();
 
-// Andando ou parado, a partir do próprio GPS: 1,2 m entre duas leituras já
-// conta como movimento, e ele só volta a "parado" depois de 4 s quieto.
 function conferirMovimento(p) {
-  const agora = p.t || Date.now();
-  let andando = false;
-  if (fixAnterior) {
-    const d = haversine(fixAnterior, p);
-    const dt = Math.max((agora - (fixAnterior.t || agora)) / 1000, 0.1);
-    if (d > 1.2 && d / dt < 12) paradoDesde = agora;
-    andando = agora - paradoDesde < 4000;
-  }
-  fixAnterior = { ...p, t: agora };
-  if (marker) {
-    const el = marker.getElement();
-    el.classList.toggle('andando', andando);
-    // vira para o lado em que está indo
-    if (andando && fixAnterior && p.lng !== undefined) el.classList.toggle('virado', p.lng < (el.dataset.lng || p.lng));
-    el.dataset.lng = p.lng;
-  }
+  const r = detector.ver(p);
+  if (!marker) return;
+  const el = marker.getElement();
+  el.classList.toggle('andando', r.andando);
+  el.classList.toggle('virado', r.olhandoPara === -1);
 }
 
 function onFix(p) {
