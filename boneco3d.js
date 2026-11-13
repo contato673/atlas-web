@@ -190,11 +190,12 @@ export function montarCorpo(cores) {
   const aleta = (lado) => {
     const a = new THREE.Group();
     const base = caixa(0.1, 0.3, 0.3, mCapacete);
-    const acesa = caixa(0.07, 0.34, 0.16, mNeon);
+    const acesa = caixa(0.07, 0.3, 0.16, mNeon);
     acesa.position.set(lado * 0.04, 0.12, -0.02);
     a.add(base, acesa);
     a.position.set(lado * 0.7, 1.0, -0.06);
-    a.rotation.z = lado * rad(-22);
+    a.rotation.z = lado * rad(-20);
+    a.rotation.x = rad(16); // deitada para tras, para nao ler como orelha de coelho
     return a;
   };
   // lombada discreta no alto, so para o capacete nao ser uma cupula lisa
