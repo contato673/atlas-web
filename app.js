@@ -1,15 +1,16 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine } from './geo.js?v=25';
+import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=26';
 import {
   FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=25';
-import * as api from './api.js?v=25';
+} from './player.js?v=26';
+import * as api from './api.js?v=26';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-} from './progresso.js?v=25';
+  latinhaSVG, LATINHAS,
+} from './progresso.js?v=26';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -48,6 +49,13 @@ let carteira = null;
 let progresso = null;
 let catalogo = null;
 let abaRank = 'total';
+let energia = null;
+let spawns = [];
+let marcasLata = new Map();
+let coletaRaio = 20;
+let ultimaBuscaSpawn = 0;
+let ultimoCentroSpawn = null;
+let temFoto = false;
 const AREA_KEY = 'atlas.area_ativa.v1';
 
 /* ===================== cores ===================== */
@@ -721,6 +729,181 @@ async function pintarFotos(raiz) {
   }
 }
 
+
+/* ===================== latinhas de energia ===================== */
+// O servidor manda a célula; quem encaixa a latinha numa rua é o celular,
+// usando a malha viária que o próprio mapa já carregou. O primeiro jogador
+// que passa por ali fixa o ponto para todo mundo.
+const CLASSES_RUA = new Set([
+  'residential', 'tertiary', 'secondary', 'primary', 'minor', 'street',
+  'living_street', 'service', 'pedestrian', 'path', 'footway', 'track',
+]);
+
+function fonteDoMapa() {
+  const l = map.getLayer('building') || map.getLayer('water');
+  return l ? l.source : null;
+}
+
+function ruaNaCelula(caixa) {
+  const fonte = fonteDoMapa();
+  if (!fonte) return null;
+  let feicoes;
+  try { feicoes = map.querySourceFeatures(fonte, { sourceLayer: 'transportation' }); }
+  catch { return null; }
+  if (!feicoes || !feicoes.length) return null;
+
+  const centro = { lat: (caixa[0] + caixa[2]) / 2, lng: (caixa[1] + caixa[3]) / 2 };
+  let melhor = null; let melhorD = Infinity;
+  for (const f of feicoes) {
+    const classe = f.properties && f.properties.class;
+    if (classe && !CLASSES_RUA.has(classe)) continue;
+    const g = f.geometry;
+    if (!g) continue;
+    const linhas = g.type === 'LineString' ? [g.coordinates]
+      : g.type === 'MultiLineString' ? g.coordinates : [];
+    for (const linha of linhas) {
+      for (let i = 1; i < linha.length; i++) {
+        const q = pertoNoSegmento(centro, linha[i - 1], linha[i]);
+        if (q.lat < caixa[0] || q.lat >= caixa[2] || q.lng < caixa[1] || q.lng >= caixa[3]) continue;
+        const d = haversine(centro, q);
+        if (d < melhorD) { melhorD = d; melhor = q; }
+      }
+    }
+  }
+  return melhor;
+}
+
+async function atualizarSpawns(forcar = false) {
+  if (!lastFix || !api.temSessao() || !mapReady) return;
+  const agora = Date.now();
+  const longe = !ultimoCentroSpawn || haversine(ultimoCentroSpawn, lastFix) > 120;
+  if (!forcar && !longe && agora - ultimaBuscaSpawn < 60000) return;
+  ultimaBuscaSpawn = agora;
+  ultimoCentroSpawn = { lat: lastFix.lat, lng: lastFix.lng };
+
+  const r = await api.spawnsPerto(lastFix.lat, lastFix.lng);
+  if (!r || !r.ok) return;
+  coletaRaio = Number(r.coleta_m) || 20;
+  spawns = (r.spawns || []).filter((s) => s.tem_ponto);
+  desenharLatinhas();
+
+  // células vivas que ainda não têm rua escolhida: o app propõe uma
+  const semPonto = (r.spawns || []).filter((s) => !s.tem_ponto).slice(0, 6);
+  let achou = false;
+  for (const s of semPonto) {
+    const q = ruaNaCelula(s.caixa);
+    if (!q) continue;
+    const ok = await api.proporPonto(s.celula, q.lat, q.lng);
+    if (ok && ok.ok) achou = true;
+  }
+  if (achou) { ultimaBuscaSpawn = 0; setTimeout(() => atualizarSpawns(true), 600); }
+}
+
+function desenharLatinhas() {
+  const vivas = new Set();
+  for (const s of spawns) {
+    vivas.add(s.celula);
+    const dist = lastFix ? haversine(lastFix, s) : Infinity;
+    const perto = dist <= coletaRaio;
+    let m = marcasLata.get(s.celula);
+    if (!m) {
+      const el = document.createElement('div');
+      el.className = 'marca-lata';
+      el.innerHTML = latinhaSVG({ tipo: s.tipo, tam: 40 });
+      el.onclick = () => pegarLatinha(s);
+      m = new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
+      marcasLata.set(s.celula, m);
+    }
+    m.getElement().classList.toggle('perto', perto);
+    m.getElement().classList.toggle('lata-longe', !perto);
+  }
+  for (const [celula, m] of marcasLata) {
+    if (!vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
+  }
+}
+
+async function pegarLatinha(s) {
+  if (!lastFix) { toast('Sem posição ainda. Espere o GPS.', 4000); return; }
+  const d = haversine(lastFix, s);
+  if (d > coletaRaio) {
+    toast(`Chegue mais perto: faltam ${Math.round(d - coletaRaio)} m.`, 3500);
+    return;
+  }
+  try {
+    const r = await api.coletar(s.celula, lastFix.lat, lastFix.lng);
+    if (r && r.ok) {
+      const nome = (LATINHAS[r.tipo] || LATINHAS.lata).nome;
+      tremer(VIB.podeFechar);
+      energia = r.energia || energia;
+      pintarEnergia();
+      toast(r.tipo === 'capsula' ? `${nome}! Agora dá para usar o turbo.` : `${nome}: +${r.ganho} de carga.`, 4000);
+      spawns = spawns.filter((x) => x.celula !== s.celula);
+      desenharLatinhas();
+    } else {
+      toast(MOTIVOS_LATA[r && r.motivo] || 'Não deu para pegar essa latinha.', 4000);
+      if (r && r.motivo === 'ja_sumiu') { spawns = spawns.filter((x) => x.celula !== s.celula); desenharLatinhas(); }
+    }
+  } catch (e) {
+    toast(e.message || 'Não deu para pegar essa latinha.', 4000);
+  }
+}
+
+const MOTIVOS_LATA = {
+  ja_sumiu: 'Essa latinha acabou de sumir. Elas trocam a cada 20 minutos.',
+  ja_peguei: 'Você já pegou essa.',
+  longe: 'Você ainda está longe demais.',
+  sem_ponto: 'Essa latinha ainda não tem lugar definido.',
+  ritmo_alto: 'Muitas coletas em pouco tempo. Espere um pouco.',
+  rapido_demais: 'Você se moveu rápido demais entre uma latinha e outra.',
+};
+
+function pintarEnergia() {
+  const chip = $('energia');
+  if (!energia) { chip.hidden = true; return; }
+  const turboDePe = energia.turbo_ate && new Date(energia.turbo_ate) > new Date();
+  chip.hidden = false;
+  chip.classList.toggle('ligado', !!turboDePe);
+  chip.innerHTML = `<span class="carga">⚡ <b>${energia.carga || 0}</b></span>`
+    + `<span class="turbo">◆ <b>${turboDePe ? 'ON' : (energia.turbo || 0)}</b></span>`;
+}
+
+async function atualizarEnergia() {
+  const e = await api.buscarEnergia();
+  if (!e) return;
+  energia = e;
+  pintarEnergia();
+}
+
+$('energia').onclick = async () => {
+  if (!energia) return;
+  const turboDePe = energia.turbo_ate && new Date(energia.turbo_ate) > new Date();
+  if (turboDePe) {
+    const falta = Math.max(0, Math.round((new Date(energia.turbo_ate) - Date.now()) / 60000));
+    await ask({
+      title: 'Turbo de pé',
+      text: `Toda conquista fechada nos próximos ${falta} min rende o dobro de ouro.`,
+      ok: 'FECHAR',
+    });
+    return;
+  }
+  const sim = await ask({
+    title: 'Mochila de energia',
+    numeros: [[String(energia.carga || 0), 'carga'], [String(energia.turbo || 0), 'cápsulas']],
+    text: 'A CARGA é munição: serve para tomar território do inimigo.\n\n'
+      + 'A CÁPSULA liga o TURBO por 45 minutos, e toda conquista fechada nesse tempo rende o dobro de ouro.',
+    ok: (energia.turbo || 0) > 0 ? 'LIGAR O TURBO' : 'FECHAR',
+    cancel: (energia.turbo || 0) > 0 ? 'AGORA NÃO' : null,
+  });
+  if (!sim || !(energia.turbo > 0)) return;
+  try {
+    const r = await api.usarTurbo();
+    if (r && r.ok) {
+      energia = r.energia; pintarEnergia(); tremer(VIB.conquista);
+      toast('Turbo ligado por 45 minutos. Ouro em dobro.', 5000);
+    } else toast('Não deu para ligar o turbo.', 4000);
+  } catch (e) { toast(e.message, 4000); }
+};
+
 /* ===================== ficha: território e jogador ===================== */
 function abrirFicha(html) {
   $('ficha-corpo').innerHTML = html;
@@ -1044,6 +1227,8 @@ function onFix(p) {
   }
   render();
   drawAll();
+  desenharLatinhas();
+  atualizarSpawns();
 }
 
 function startGps() {
@@ -1152,10 +1337,10 @@ ui.finish.onclick = async () => {
         ...(carteira ? [[`+${fmtOuro(Math.floor(r.area_terreno / 1000))}`, 'ouro']] : [])],
       text: resumo + (tomadas.length ? `\n\nVocê tirou território de: ${tomadas.join(', ')}` : ''),
       ok: 'VOLTAR AO MAPA',
-      extra: {
+      extra: temFoto ? {
         rotulo: 'FOTO DO LUGAR',
         acao: tirarFotoDoTerritorio,
-      },
+      } : null,
       extra2: {
         rotulo: 'CARTÃO',
         acao: async () => {
@@ -1177,6 +1362,8 @@ ui.finish.onclick = async () => {
     carteira = await api.buscarCarteira();
     await atualizarMapa();
     await atualizarProgresso();
+    await atualizarEnergia();
+    atualizarSpawns(true);
     return;
   }
 
@@ -1273,6 +1460,9 @@ function entrarNoJogo() {
   atualizarMarcador();
   atualizarMapa();
   atualizarProgresso();
+  atualizarEnergia();
+  // A foto só aparece quando o servidor já tem a parte dela aplicada.
+  api.ultimaConquista().then((u) => { temFoto = u !== null; }).catch(() => { temFoto = false; });
   api.faxinaFotos();
   api.reenviarPendentes().then((f) => { if (f.length) { toast(`${f.length} rota(s) guardada(s) foram enviadas.`); atualizarMapa(); } });
 }
@@ -1299,6 +1489,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && api.temSessao() && session.state === 'idle') {
     atualizarMapa();
     atualizarProgresso();
+    atualizarEnergia();
+    atualizarSpawns(true);
   }
 });
 

@@ -182,3 +182,35 @@ export const VIB = {
   recusa: [220],
   medalha: [40, 40, 40, 40, 120],
 };
+
+/* ===================== latinhas de energia ===================== */
+export const LATINHAS = {
+  lata:    { nome: 'Latinha',  cor: '#c6ff3d', raridade: 'comum' },
+  latao:   { nome: 'Latão',    cor: '#22e3ff', raridade: 'rara' },
+  capsula: { nome: 'Cápsula',  cor: '#a855ff', raridade: 'epica' },
+};
+
+export function latinhaSVG({ tipo = 'lata', tam = 44 }) {
+  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
+  const corpo = {
+    // lata comum: baixa e estreita
+    lata: `<rect x="15" y="15" width="14" height="20" rx="3" fill="#0b1118" stroke="${cor}" stroke-width="2"/>
+           <rect x="15" y="20" width="14" height="5" fill="${cor}" opacity=".85"/>
+           <rect x="17.5" y="12.5" width="9" height="3" rx="1.2" fill="${cor}" opacity=".7"/>`,
+    // latão: mais alto e mais largo
+    latao: `<rect x="13" y="11" width="18" height="26" rx="3.5" fill="#0b1118" stroke="${cor}" stroke-width="2"/>
+            <rect x="13" y="17" width="18" height="7" fill="${cor}" opacity=".85"/>
+            <rect x="13" y="27" width="18" height="2.5" fill="${cor}" opacity=".5"/>
+            <rect x="16" y="8.5" width="12" height="3" rx="1.2" fill="${cor}" opacity=".7"/>`,
+    // cápsula: frasco com tampa
+    capsula: `<path d="M18 10h8v5l3 6v15a3 3 0 01-3 3h-8a3 3 0 01-3-3V21l3-6v-5z"
+                     fill="#0b1118" stroke="${cor}" stroke-width="2"/>
+              <path d="M15.6 25h12.8v9a3 3 0 01-3 3h-6.8a3 3 0 01-3-3v-9z" fill="${cor}" opacity=".8"/>
+              <rect x="17" y="7" width="10" height="3.5" rx="1.4" fill="${cor}"/>`,
+  }[tipo] || '';
+  return `<svg viewBox="0 0 44 44" width="${tam}" height="${tam}" class="latinha">
+    <circle cx="22" cy="22" r="20" fill="${cor}" opacity=".1"/>
+    <circle cx="22" cy="22" r="20" fill="none" stroke="${cor}" stroke-width="1.5" opacity=".55"/>
+    <g style="filter:drop-shadow(0 0 5px ${cor}cc)">${corpo}</g>
+  </svg>`;
+}

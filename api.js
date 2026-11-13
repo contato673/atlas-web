@@ -1,6 +1,6 @@
 // ATLAS — conversa com o servidor (Supabase, pela API REST, sem bibliotecas).
 // Sem servidor configurado, tudo cai no MODO LOCAL, só neste aparelho.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=25';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=26';
 
 export const temServidor = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
@@ -338,4 +338,38 @@ export async function faxinaFotos() {
   try { await chamar('/rest/v1/rpc/fotos_apagadas', { metodo: 'POST', corpo: { p_caminhos: idas } }); }
   catch { /* fica na fila para a próxima */ }
   return idas.length;
+}
+
+/* ===================== energia e latinhas ===================== */
+export async function spawnsPerto(lat, lng) {
+  if (!temServidor || !temSessao()) return null;
+  try {
+    return await chamar('/rest/v1/rpc/spawns_perto', {
+      metodo: 'POST', corpo: { p_lat: lat, p_lng: lng }, prazo: 12000,
+    });
+  } catch { return null; }
+}
+
+export async function proporPonto(celula, lat, lng) {
+  try {
+    return await chamar('/rest/v1/rpc/propor_ponto', {
+      metodo: 'POST', corpo: { p_celula: celula, p_lat: lat, p_lng: lng }, prazo: 12000,
+    });
+  } catch { return null; }
+}
+
+export async function coletar(celula, lat, lng) {
+  return chamar('/rest/v1/rpc/coletar', {
+    metodo: 'POST', corpo: { p_celula: celula, p_lat: lat, p_lng: lng }, prazo: 15000,
+  });
+}
+
+export async function buscarEnergia() {
+  if (!temServidor || !temSessao()) return null;
+  try { return await chamar('/rest/v1/rpc/energia', { metodo: 'POST', corpo: {} }); }
+  catch { return null; }
+}
+
+export async function usarTurbo() {
+  return chamar('/rest/v1/rpc/usar_turbo', { metodo: 'POST', corpo: {} });
 }

@@ -26,6 +26,22 @@ const R = 6371008.8; // raio médio da Terra em metros
 const rad = (d) => (d * Math.PI) / 180;
 
 /** Distância em metros entre dois pontos {lat, lng}. */
+// Ponto de um segmento de reta mais próximo de p, em lat/lng. A longitude é
+// corrigida pelo cosseno da latitude, senão o "mais próximo" sai torto: perto
+// de Campo Grande um grau de longitude é mais curto que um de latitude.
+// Serve para encaixar a latinha na rua mais próxima dentro da célula.
+export function pertoNoSegmento(p, a, b) {
+  const k = Math.cos((p.lat * Math.PI) / 180) || 1;
+  const ax = a[0] * k; const ay = a[1];
+  const bx = b[0] * k; const by = b[1];
+  const px = p.lng * k; const py = p.lat;
+  const dx = bx - ax; const dy = by - ay;
+  const len = dx * dx + dy * dy;
+  let t = len > 0 ? ((px - ax) * dx + (py - ay) * dy) / len : 0;
+  t = Math.max(0, Math.min(1, t));
+  return { lng: (ax + t * dx) / k, lat: ay + t * dy };
+}
+
 export function haversine(a, b) {
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);

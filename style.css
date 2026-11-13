@@ -509,3 +509,23 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 }
 .foto-grande { width: 100%; height: auto; display: block; border: 1px solid var(--line); }
 .foto-nota { font-size: 11px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+
+/* ===================== energia e latinhas ===================== */
+.chip.energia {
+  display: flex; align-items: center; gap: 8px; font: inherit; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(5,8,12,.72); color: var(--text);
+  padding: 5px 9px; letter-spacing: .06em;
+}
+.chip.energia b { font-family: Orbitron, sans-serif; font-size: 12px; }
+.chip.energia .carga { color: #c6ff3d; }
+.chip.energia .turbo { color: #a855ff; }
+.chip.energia.ligado { border-color: #a855ff; box-shadow: 0 0 12px rgba(168,85,255,.45); }
+
+.marca-lata { cursor: pointer; line-height: 0; transition: transform .15s ease; }
+.marca-lata:active { transform: scale(.88); }
+.marca-lata.perto { animation: pulsa 1.6s ease-in-out infinite; }
+@keyframes pulsa {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.12); filter: brightness(1.35); }
+}
+.lata-longe { opacity: .45; }
