@@ -1,16 +1,16 @@
 // ATLAS — protótipo web: identidade do jogador + sessão de rota.
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
-import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=28';
+import { CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento } from './geo.js?v=29';
 import {
-  FACCOES, NEONS, MODELOS, sneakerSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
+  FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=28';
-import * as api from './api.js?v=28';
+} from './player.js?v=29';
+import * as api from './api.js?v=29';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
-  latinhaSVG, LATINHAS,
-} from './progresso.js?v=28';
+  latinhaSVG, marcaLatinhaHTML, LATINHAS,
+} from './progresso.js?v=29';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -67,7 +67,7 @@ function aplicarCores(p) {
 
 function pintarHud() {
   if (!perfil) return;
-  ui.hudShoe.innerHTML = sneakerSVG({ ...perfil, cor: corDoPerfil(perfil), largura: 34, brilho: 1 });
+  ui.hudShoe.innerHTML = avatarSVG({ ...perfil, cor: corDoPerfil(perfil), largura: 26, sombra: false });
   ui.hudNome.textContent = perfil.apelido;
   ui.hudFac.textContent = FACCOES[perfil.faccao].nome;
   pintarNivel();
@@ -184,8 +184,8 @@ function fecharOnboarding() {
 }
 
 function montarOpcoes() {
-  $('row-modelo').innerHTML = MODELOS.map((m) => {
-    const item = `modelo:${m.id}`;
+  $('row-modelo').innerHTML = ROUPAS.map((m) => {
+    const item = `roupa:${m.id}`;
     const meu = temItem(carteira, item);
     return `<button type="button" data-modelo="${m.id}" data-item="${item}" class="${meu ? '' : 'travado'}">`
       + `<b>${m.nome}</b><i>${meu ? m.desc : `${fmtOuro(precoDe(item))} ouro`}</i></button>`;
@@ -250,15 +250,15 @@ function marcarEscolhas() {
 
 function desenharPreview() {
   $('cenario-fundo').innerHTML = cenarioSVG({ id: rascunho.cenario, cor: corDoPerfil(rascunho), largura: 300 });
-  $('preview').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 236, brilho: 2.4 });
+  $('preview').innerHTML = avatarSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 118 });
 }
 
 function desenharResumo() {
-  $('resumo-shoe').innerHTML = sneakerSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 110, brilho: 1.6 });
+  $('resumo-shoe').innerHTML = avatarSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 92 });
   $('resumo-nome').textContent = rascunho.apelido;
   $('resumo-fac').textContent = `FACÇÃO ${FACCOES[rascunho.faccao].nome}`;
-  const m = MODELOS.find((x) => x.id === rascunho.modelo);
-  const c = NEONS.find((x) => x.id === rascunho.cor);
+  const m = ROUPAS.find((x) => x.id === rascunho.modelo) || ROUPAS[0];
+  const c = NEONS.find((x) => x.id === rascunho.cor) || NEONS[0];
   $('resumo-ten').textContent = `${m.nome} · ${c.nome}`;
 }
 
@@ -312,9 +312,9 @@ ui.onb.addEventListener('click', (e) => {
     return;
   }
   if (b.dataset.modelo) {
-    const item = `modelo:${b.dataset.modelo}`;
+    const item = `roupa:${b.dataset.modelo}`;
     if (!temItem(carteira, item)) {
-      const m = MODELOS.find((x) => x.id === b.dataset.modelo);
+      const m = ROUPAS.find((x) => x.id === b.dataset.modelo);
       tentarComprar(item, m.nome).then((ok) => { if (ok) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); } });
       return;
     }
@@ -547,6 +547,9 @@ async function initMap() {
   map = new maplibregl.Map({
     container: 'map', style, center: CAMPO_GRANDE, zoom: 12.5,
     attributionControl: false, dragRotate: false, pitchWithRotate: false,
+    // O afastamento máximo é amarrado ao raio de 500 m das latinhas: se desse
+    // para afastar mais, as bordas do mapa ficariam vazias e pareceria defeito.
+    minZoom: CAMERA.zoomMin, maxZoom: 19, pitch: 0, maxPitch: 62,
   });
   // Crédito do OpenStreetMap é obrigatório, mas fica recolhido num "i" de canto.
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
@@ -566,6 +569,7 @@ async function initMap() {
   });
 
   map.on('load', () => {
+    levantarPredios();
     // Edificações do OpenStreetMap, no chão, discretas e só de perto.
     if (map.getLayer('building')) {
       map.setPaintProperty('building', 'fill-color', '#16222f');
@@ -634,7 +638,7 @@ function atualizarMarcador() {
       .setLngLat([lastFix.lng, lastFix.lat]).addTo(map);
   }
   marker.getElement().querySelector('.me-shoe').innerHTML =
-    sneakerSVG({ ...(perfil || perfilVazio()), cor, largura: 62, brilho: 2 });
+    avatarSVG({ ...(perfil || perfilVazio()), cor, largura: 54, sombra: false });
   marker.setLngLat([lastFix.lng, lastFix.lat]);
 }
 
@@ -730,6 +734,54 @@ async function pintarFotos(raiz) {
 }
 
 
+
+/* ===================== câmera: passeio inclinado, rota reta ===================== */
+// APROVADO pelo Miguel em 13/11/2026: no passeio a câmera fica inclinada, como
+// no Pokémon GO. Quando a rota começa o mapa volta a ficar reto, porque de
+// lado o território vira um trapézio e fica difícil julgar a forma do polígono.
+const CAMERA = {
+  pitchPasseio: 55,
+  pitchRota: 0,
+  // Em Campo Grande, neste zoom a tela cobre pouco mais que o diâmetro do
+  // raio de 500 m em que o servidor entrega latinha.
+  zoomMin: 15.2,
+  zoomPadrao: 16.5,
+};
+
+function aplicarCamera({ animado = true } = {}) {
+  if (!mapReady) return;
+  const alvo = session.state === 'idle' ? CAMERA.pitchPasseio : CAMERA.pitchRota;
+  if (Math.abs(map.getPitch() - alvo) < 1) return;
+  if (animado) map.easeTo({ pitch: alvo, duration: 900 });
+  else map.setPitch(alvo);
+}
+
+// Os dados de mapa que já baixamos trazem a altura de cada edificação, então
+// os prédios saem em volume sem nenhum arquivo novo.
+function levantarPredios() {
+  const base = map.getLayer('building');
+  if (!base || map.getLayer('predios-3d')) return;
+  const antes = map.getStyle().layers.find((l) => l.id === 'terr-fill') ? 'terr-fill' : undefined;
+  try {
+    map.addLayer({
+      id: 'predios-3d',
+      type: 'fill-extrusion',
+      source: base.source,
+      'source-layer': 'building',
+      minzoom: 15,
+      paint: {
+        'fill-extrusion-color': [
+          'interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+          0, '#17232f', 20, '#1d2e3f', 60, '#25405a',
+        ],
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 6],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.82,
+      },
+    }, antes);
+  } catch { /* estilo sem camada de edificação: segue sem os volumes */ }
+}
+
 /* ===================== latinhas de energia ===================== */
 // O servidor manda a célula; quem encaixa a latinha numa rua é o celular,
 // usando a malha viária que o próprio mapa já carregou. O primeiro jogador
@@ -809,7 +861,7 @@ function desenharLatinhas() {
     if (!m) {
       const el = document.createElement('div');
       el.className = 'marca-lata';
-      el.innerHTML = latinhaSVG({ tipo: s.tipo, tam: 40 });
+      el.innerHTML = marcaLatinhaHTML(s.tipo, 42);
       el.onclick = () => pegarLatinha(s);
       m = new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
       marcasLata.set(s.celula, m);
@@ -936,7 +988,15 @@ function abrirTerritorio(props) {
     const foto = d && d.foto
       ? `<span class="foto-mini" data-foto="${d.foto}"></span>`
       : '<span class="foto-vazia">·</span>';
-    return `<li>${foto}<span class="nm" data-jog="${nome}">${nome}</span>
+    // o avatar de quem domina o pedaço, pedido do Miguel em 13/11
+    const av = d && d.modelo
+      ? `<span class="av">${avatarSVG({
+        modelo: d.modelo,
+        cor: (NEONS.find((n) => n.id === d.cor) || NEONS[0]).cor,
+        faccao: props.faccao, largura: 30, sombra: false,
+      })}</span>`
+      : '';
+    return `<li>${foto}${av}<span class="nm" data-jog="${nome}">${nome}</span>
       <span class="m2">${a > 0 ? fmtArea(a) : ''}</span><span class="pc">${pc}</span></li>`;
   }).join('');
   abrirFicha(`<h3 class="ficha-tit">${fmtArea(area)}</h3>
@@ -957,7 +1017,7 @@ async function abrirJogador(apelido) {
   abrirFicha(`<div class="ficha-perfil">
       <div class="ficha-arte">
         <div class="cen">${cenarioSVG({ id: e.cenario || 'noturno', cor, largura: 108 })}</div>
-        <div class="ten">${sneakerSVG({ modelo: e.modelo, cor, faccao: e.faccao, largura: 78, brilho: 1.4 })}</div>
+        <div class="ten">${avatarSVG({ modelo: e.modelo, cor, faccao: e.faccao, largura: 66 })}</div>
       </div>
       <div>
         <h3 class="ficha-tit">${e.apelido}</h3>
@@ -1155,7 +1215,7 @@ function linhaRank(j, i, valor, rotulo) {
   const eu = perfil && j.apelido === perfil.apelido;
   return `<li class="${eu ? 'eu' : ''}" data-jog="${j.apelido}">
     <span class="pos">${i + 1}</span>
-    <span class="sh">${sneakerSVG({ modelo: j.modelo, cor: (NEONS.find((n) => n.id === j.cor) || NEONS[0]).cor, faccao: j.faccao, largura: 30, brilho: 0.6 })}</span>
+    <span class="sh">${avatarSVG({ modelo: j.modelo, cor: (NEONS.find((n) => n.id === j.cor) || NEONS[0]).cor, faccao: j.faccao, largura: 24, sombra: false })}</span>
     <span class="nm">${j.apelido}<i style="color:${f.cor}">${f.nome}</i></span>
     <span class="cr">${rotulo}</span>
   </li>`;
@@ -1232,6 +1292,7 @@ function onFix(p) {
   drawAll();
   desenharLatinhas();
   atualizarSpawns();
+  aplicarCamera();
 }
 
 function startGps() {
@@ -1298,6 +1359,7 @@ ui.start.onclick = async () => {
   keepScreenOn();
   render();
   drawAll();
+  aplicarCamera();
 };
 
 ui.finish.onclick = async () => {
@@ -1318,6 +1380,7 @@ ui.finish.onclick = async () => {
   save();
   releaseScreen();
   render();
+  aplicarCamera();
 
   const resumo = `Percurso: ${fmtDist(payload.distanceM)} em ${fmtTime(payload.finishedAt - payload.startedAt)}.`;
   toast('Enviando a rota para o servidor…', 2500);

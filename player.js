@@ -20,10 +20,14 @@ export const NEONS = [
   { id: 'coral', nome: 'Coral', cor: '#ff5a6e' },
 ];
 
-export const MODELOS = [
-  { id: 'runner', nome: 'Runner', desc: 'Perfil baixo e leve' },
-  { id: 'hitop', nome: 'Cano alto', desc: 'Silhueta de quadra' },
-  { id: 'chunky', nome: 'Chunky', desc: 'Sola alta e marcante' },
+// O tênis saiu do jogo em 13/11/2026. Quem tinha modelo antigo salvo no
+// aparelho ou no banco vira a roupa correspondente, sem perder nada.
+export const ROUPA_ANTIGA = { runner: 'basico', hitop: 'corredor', chunky: 'jaqueta' };
+
+export const ROUPAS = [
+  { id: 'basico',   nome: 'Moletom',        desc: 'Capuz caído e cordão' },
+  { id: 'corredor', nome: 'Corta-vento',    desc: 'Justo, com faixa refletiva' },
+  { id: 'jaqueta',  nome: 'Jaqueta Tática', desc: 'Gola alta e ombreiras' },
 ];
 
 // Geometria de cada modelo, em um quadro de 64 x 40 (perfil, virado para a direita).
@@ -66,43 +70,86 @@ let uid = 0;
  * Desenha o tênis como SVG.
  * cor: neon do jogador (vem do perfil). faccao: 'meridiano' | 'azimute'.
  */
-export function sneakerSVG({ modelo = 'runner', cor = '#22e3ff', faccao = 'meridiano', largura = 64, brilho = 1.6 } = {}) {
-  const f = FORMAS[modelo] || FORMAS.runner;
-  const corFaccao = (FACCOES[faccao] || FACCOES.meridiano).cor;
-  const n = `s${++uid}`;
-  const cadarcos = f.cadarcos
-    .map(([x1, y1, x2, y2]) => `<path d="M${x1},${y1} L${x2},${y2}" stroke="${corFaccao}" stroke-width="1.5" stroke-linecap="round" opacity=".95"/>`)
-    .join('');
-  const calcanhar = `<path d="${f.calcanhar}" fill="${corFaccao}" opacity=".85"/>`;
+const PELE = '#c99a73', PELE_S = '#a97e5c';
+const CABELO = '#171f2a';
+const CALCA = '#202b39', CALCA_S = '#19222e';
+const SAPATO = '#0d141c';
 
-  return `<svg viewBox="0 0 66 38" width="${largura}" height="${(largura * 38) / 66}" aria-hidden="true">
-  <defs>
-    <linearGradient id="corpo${n}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#22304260"/><stop offset="1" stop-color="#0a1018"/>
-    </linearGradient>
-    <linearGradient id="sola${n}" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="${cor}"/><stop offset="1" stop-color="${corFaccao}"/>
-    </linearGradient>
-    <filter id="luz${n}" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="${brilho}" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <g filter="url(#luz${n})">
-    <path d="${f.contorno}" fill="url(#corpo${n})"/>
-    <path d="${f.sola}" fill="url(#sola${n})" opacity=".92"/>
-    <path d="${f.entressola}" fill="none" stroke="#05080c" stroke-width="1.2" opacity=".7"/>
-    <path d="${f.contorno}" fill="none" stroke="${cor}" stroke-width="1.7" stroke-linejoin="round"/>
-    <path d="${f.lingua}" fill="#0a1018" stroke="${cor}" stroke-width="1.1" stroke-linejoin="round" opacity=".95"/>
-    <path d="${f.colarinho}" fill="#05080c" stroke="${cor}" stroke-width="1.1" opacity=".9"/>
-    ${cadarcos}
-    ${calcanhar}
-    <path d="${f.painel}" fill="none" stroke="${cor}" stroke-width="2.2" stroke-linecap="round" opacity=".92"/>
-  </g>
-</svg>`;
+// Visto de cima e de frente, uns 50 graus: a cabeça cobre parte dos ombros,
+// os pés aparecem curtos. Proporção de boneco, para ler bem pequeno no mapa.
+function tronco(id, cor, fac) {
+  const comum = `
+    <path d="M44 128h14v8H42l2-8z" fill="${SAPATO}"/>
+    <path d="M62 128h14l2 8H62v-8z" fill="${SAPATO}"/>
+    <path d="M42 133h16v3H42zM62 133h16v3H62z" fill="${cor}" opacity=".95"/>
+    <path d="M47 100h11l-1 29H46l1-29z" fill="${CALCA}"/>
+    <path d="M62 100h11l1 29H63l-1-29z" fill="${CALCA_S}"/>`;
+
+  if (id === 'corredor') {
+    return comum + `
+      <path d="M41 66h38l4 34q-23 6-46 0l4-34z" fill="#18222e"/>
+      <path d="M41 66h38l1 7H40l1-7z" fill="${cor}"/>
+      <path d="M39 86h42v5H39z" fill="${cor}" opacity=".55"/>
+      <path d="M60 66v34" stroke="${fac}" stroke-width="2" opacity=".9"/>
+      <path d="M41 66l-9 5-5 26 10 4 8-31z" fill="#18222e"/>
+      <path d="M79 66l9 5 5 26-10 4-8-31z" fill="#18222e"/>
+      <path d="M28 95l9 3-1 6-10-3z" fill="${PELE}"/>
+      <path d="M92 95l-9 3 1 6 10-3z" fill="${PELE_S}"/>`;
+  }
+  if (id === 'jaqueta') {
+    return comum + `
+      <path d="M36 68h48l5 33q-29 7-58 0l5-33z" fill="#1b2633"/>
+      <path d="M51 67h18l-3 11H54l-3-11z" fill="${cor}"/>
+      <path d="M51 67h18l-1 4H52l-1-4z" fill="#000" opacity=".25"/>
+      <path d="M60 72v29" stroke="${cor}" stroke-width="2.6" opacity=".95"/>
+      <path d="M36 68l-11 6-5 25 11 4 9-30z" fill="#1b2633"/>
+      <path d="M84 68l11 6 5 25-11 4-9-30z" fill="#1b2633"/>
+      <path d="M30 70h14l2 9H28z" fill="${fac}" opacity=".85"/>
+      <path d="M76 70h14l2 9H74z" fill="${fac}" opacity=".85"/>
+      <path d="M21 97l10 3-1 6-11-3z" fill="${PELE}"/>
+      <path d="M99 97l-10 3 1 6 11-3z" fill="${PELE_S}"/>`;
+  }
+  return comum + `
+    <path d="M40 67h40l4 34q-24 7-48 0l4-34z" fill="#16202b"/>
+    <path d="M40 67q20 12 40 0l-3-5q-17 9-34 0z" fill="#1e2a38"/>
+    <path d="M56 70v6M64 70v6" stroke="${cor}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M60 78v23" stroke="${fac}" stroke-width="2" opacity=".7"/>
+    <path d="M44 100h32v6H44z" fill="#1e2a38"/>
+    <path d="M40 67l-10 5-5 26 10 4 9-31z" fill="#16202b"/>
+    <path d="M80 67l10 5 5 26-10 4-9-31z" fill="#16202b"/>
+    <path d="M26 96l9 3-1 6-10-3z" fill="${PELE}"/>
+    <path d="M94 96l-9 3 1 6 10-3z" fill="${PELE_S}"/>`;
 }
 
-const vazio = { apelido: '', faccao: 'meridiano', modelo: 'runner', cor: 'ciano', cenario: 'noturno' };
+// Aceita tanto `roupa` quanto `modelo` (o nome da coluna no banco), e a
+// facção tanto pelo id ('meridiano') quanto por uma cor pronta.
+export function avatarSVG({
+  roupa, modelo, cor = '#22e3ff', faccao = 'meridiano', largura = 90, sombra = true,
+} = {}) {
+  let peca = roupa || modelo;
+  if (ROUPA_ANTIGA[peca]) peca = ROUPA_ANTIGA[peca];
+  if (!ROUPAS.some((r) => r.id === peca)) peca = 'basico';
+  const corFac = FACCOES[faccao] ? FACCOES[faccao].cor : faccao;
+  return montarAvatar(peca, cor, corFac, largura, sombra);
+}
+
+function montarAvatar(roupa, cor, faccao, largura, sombra) {
+  return `<svg viewBox="0 0 120 150" width="${largura}" height="${largura * 150 / 120}" class="avatar">
+    ${sombra ? '<ellipse cx="60" cy="139" rx="27" ry="7" fill="#000" opacity=".5"/>' : ''}
+    ${tronco(roupa, cor, faccao)}
+    <path d="M54 56h12v10H54z" fill="${PELE_S}"/>
+    <ellipse cx="60" cy="41" rx="19.5" ry="20" fill="${PELE}"/>
+    <path d="M40.5 41q0-20 19.5-20T79.5 41q-3-7-19.5-7T40.5 41z" fill="${CABELO}"/>
+    <path d="M41 25q19-13 38 0 2 8 .5 13-4-9-19.5-9T41.5 38Q40 33 41 25z" fill="${faccao}"/>
+    <path d="M38 36h44q1 4-1 5H39q-2-1-1-5z" fill="${faccao}"/>
+    <path d="M38 36h44q1 4-1 5H39q-2-1-1-5z" fill="#000" opacity=".2"/>
+    <circle cx="53" cy="47" r="2.4" fill="#0b1118"/>
+    <circle cx="67" cy="47" r="2.4" fill="#0b1118"/>
+    <path d="M55 54q5 3.5 10 0" stroke="#0b1118" stroke-width="1.9" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+const vazio = { apelido: '', faccao: 'meridiano', modelo: 'basico', cor: 'ciano', cenario: 'noturno' };
 
 export function corDoPerfil(p) {
   return (NEONS.find((n) => n.id === (p && p.cor)) || NEONS[0]).cor;
@@ -115,6 +162,8 @@ export function carregarPerfil() {
     const perfil = { ...vazio, ...p };
     if (FACCAO_ANTIGA[perfil.faccao]) perfil.faccao = FACCAO_ANTIGA[perfil.faccao];
     if (!FACCOES[perfil.faccao]) perfil.faccao = vazio.faccao;
+    if (ROUPA_ANTIGA[perfil.modelo]) perfil.modelo = ROUPA_ANTIGA[perfil.modelo];
+    if (!ROUPAS.some((r) => r.id === perfil.modelo)) perfil.modelo = vazio.modelo;
     if (!NEONS.some((n) => n.id === perfil.cor)) perfil.cor = vazio.cor;
     if (!CENARIOS.some((c) => c.id === perfil.cenario)) perfil.cenario = vazio.cenario;
     return perfil;
@@ -165,7 +214,7 @@ export function logoSVG({ largura = 120, cor = '#22e3ff', faccao = 'meridiano', 
 
 /* ===================== economia ===================== */
 // O que todo jogador já começa tendo. O resto se compra com ouro.
-export const GRATIS = ['modelo:runner', 'cor:ciano', 'cor:lima', 'cenario:noturno'];
+export const GRATIS = ['roupa:basico', 'cor:ciano', 'cor:lima', 'cenario:noturno'];
 
 // Preços espelham a tabela `loja` do servidor; aqui servem para mostrar na tela.
 export const PRECOS = {
@@ -173,8 +222,8 @@ export const PRECOS = {
   'cor:violeta': 150,
   'cor:laranja': 150,
   'cor:coral': 150,
-  'modelo:hitop': 600,
-  'modelo:chunky': 900,
+  'roupa:corredor': 600,
+  'roupa:jaqueta': 900,
 };
 
 export const temItem = (carteira, item) =>

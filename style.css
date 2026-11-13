@@ -204,7 +204,7 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 #cenario-fundo { position: absolute; inset: 0; line-height: 0; }
 #cenario-fundo svg { width: 100%; height: 100%; border-radius: 50%; }
 #preview { position: relative; line-height: 0; animation: flutua 3.6s ease-in-out infinite; }
-#preview svg { width: min(44vw, 165px); height: auto; filter: drop-shadow(0 8px 14px rgba(0,0,0,.6)); }
+#preview svg { width: min(34vw, 126px); height: auto; filter: drop-shadow(0 8px 14px rgba(0,0,0,.6)); }
 @keyframes flutua { 50% { transform: translateY(-7px); } }
 
 .opt-tit { display: block; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
@@ -529,3 +529,53 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   50% { transform: scale(1.12); filter: brightness(1.35); }
 }
 .lata-longe { opacity: .45; }
+
+/* ===================== latinha que flutua ===================== */
+/* O que faz flutuar não é a lata: é a sombra no chão encolhendo enquanto ela
+   sobe, mais o anel de luz parado embaixo. Sem a sombra, parece colada. */
+.marca-lata {
+  position: relative; width: 46px; height: 70px; cursor: pointer;
+  display: grid; place-items: end center;
+}
+.marca-lata .lata-anel {
+  position: absolute; bottom: 2px; left: 50%; width: 38px; height: 12px;
+  transform: translateX(-50%);
+  border: 1.5px solid var(--c); border-radius: 50%;
+  box-shadow: 0 0 10px var(--c); opacity: .55;
+  animation: anelPulsa 2.4s ease-in-out infinite;
+}
+.marca-lata .lata-sombra {
+  position: absolute; bottom: 5px; left: 50%; width: 26px; height: 8px;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.65), rgba(0,0,0,0) 70%);
+  animation: sombraFlutua 2.4s ease-in-out infinite;
+}
+.marca-lata .lata-sobe {
+  position: relative; line-height: 0; margin-bottom: 8px;
+  animation: flutuaLata 2.4s ease-in-out infinite;
+}
+.marca-lata.perto .lata-sobe { animation-duration: 1.2s; }
+.marca-lata.perto .lata-anel { animation-duration: 1.2s; opacity: .9; }
+.marca-lata:active .lata-sobe { transform: scale(.86); }
+.lata-longe { opacity: .55; }
+@keyframes flutuaLata {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes sombraFlutua {
+  0%, 100% { width: 26px; opacity: .75; }
+  50% { width: 17px; opacity: .45; }
+}
+@keyframes anelPulsa {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: .5; }
+  50% { transform: translateX(-50%) scale(1.18); opacity: .85; }
+}
+
+/* ===================== avatar ===================== */
+.me-marker .me-shoe {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  line-height: 0; pointer-events: none;
+}
+.hud-shoe .avatar, .sh .avatar { display: block; }
+.ficha-donos .av { width: 30px; flex: none; line-height: 0; }
+.ficha-donos .av svg { width: 100%; height: auto; }

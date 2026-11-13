@@ -185,32 +185,63 @@ export const VIB = {
 
 /* ===================== latinhas de energia ===================== */
 export const LATINHAS = {
-  lata:    { nome: 'Latinha',  cor: '#c6ff3d', raridade: 'comum' },
-  latao:   { nome: 'Latão',    cor: '#22e3ff', raridade: 'rara' },
-  capsula: { nome: 'Cápsula',  cor: '#a855ff', raridade: 'epica' },
+  lata:    { nome: 'Latinha', cor: '#c6ff3d', raridade: 'comum' },
+  latao:   { nome: 'Latão',   cor: '#22e3ff', raridade: 'rara' },
+  capsula: { nome: 'Cápsula', cor: '#a855ff', raridade: 'epica' },
 };
 
-export function latinhaSVG({ tipo = 'lata', tam = 44 }) {
-  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
+// Cilindro falso: gradiente horizontal escuro-claro-escuro dá o volume,
+// a elipse de cima dá a boca da lata, o brilho vertical dá o metal.
+function cilindro(id, cor) {
+  const g = `g${id}`;
   const corpo = {
-    // lata comum: baixa e estreita
-    lata: `<rect x="15" y="15" width="14" height="20" rx="3" fill="#0b1118" stroke="${cor}" stroke-width="2"/>
-           <rect x="15" y="20" width="14" height="5" fill="${cor}" opacity=".85"/>
-           <rect x="17.5" y="12.5" width="9" height="3" rx="1.2" fill="${cor}" opacity=".7"/>`,
-    // latão: mais alto e mais largo
-    latao: `<rect x="13" y="11" width="18" height="26" rx="3.5" fill="#0b1118" stroke="${cor}" stroke-width="2"/>
-            <rect x="13" y="17" width="18" height="7" fill="${cor}" opacity=".85"/>
-            <rect x="13" y="27" width="18" height="2.5" fill="${cor}" opacity=".5"/>
-            <rect x="16" y="8.5" width="12" height="3" rx="1.2" fill="${cor}" opacity=".7"/>`,
-    // cápsula: frasco com tampa
-    capsula: `<path d="M18 10h8v5l3 6v15a3 3 0 01-3 3h-8a3 3 0 01-3-3V21l3-6v-5z"
-                     fill="#0b1118" stroke="${cor}" stroke-width="2"/>
-              <path d="M15.6 25h12.8v9a3 3 0 01-3 3h-6.8a3 3 0 01-3-3v-9z" fill="${cor}" opacity=".8"/>
-              <rect x="17" y="7" width="10" height="3.5" rx="1.4" fill="${cor}"/>`,
-  }[tipo] || '';
-  return `<svg viewBox="0 0 44 44" width="${tam}" height="${tam}" class="latinha">
-    <circle cx="22" cy="22" r="20" fill="${cor}" opacity=".1"/>
-    <circle cx="22" cy="22" r="20" fill="none" stroke="${cor}" stroke-width="1.5" opacity=".55"/>
-    <g style="filter:drop-shadow(0 0 5px ${cor}cc)">${corpo}</g>
+    lata:    { x: 11, y: 14, w: 18, h: 25, r: 3.2 },
+    latao:   { x: 9,  y: 9,  w: 22, h: 32, r: 3.6 },
+    capsula: { x: 12, y: 13, w: 16, h: 27, r: 7.5 },
+  }[id];
+  const { x, y, w, h, r } = corpo;
+  const cx = x + w / 2;
+  return `
+    <defs>
+      <linearGradient id="${g}m" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#0a0f16"/>
+        <stop offset=".28" stop-color="#43536a"/>
+        <stop offset=".46" stop-color="#9fb4cc"/>
+        <stop offset=".62" stop-color="#43536a"/>
+        <stop offset="1" stop-color="#0a0f16"/>
+      </linearGradient>
+      <linearGradient id="${g}c" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${cor}" stop-opacity=".35"/>
+        <stop offset=".42" stop-color="${cor}"/>
+        <stop offset=".62" stop-color="${cor}" stop-opacity=".75"/>
+        <stop offset="1" stop-color="${cor}" stop-opacity=".3"/>
+      </linearGradient>
+    </defs>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#${g}m)"/>
+    <rect x="${x}" y="${y + h * 0.3}" width="${w}" height="${h * 0.42}" fill="url(#${g}c)"/>
+    <path d="M${x + 3.5} ${y + 2}v${h - 4}" stroke="#eaf2fb" stroke-width="1.6" opacity=".5" stroke-linecap="round"/>
+    <ellipse cx="${cx}" cy="${y}" rx="${w / 2}" ry="${w / 5.5}" fill="#8ea4bd"/>
+    <ellipse cx="${cx}" cy="${y}" rx="${w / 2.9}" ry="${w / 8.5}" fill="#36475c"/>
+    <path d="M${x} ${y + h - r} a${w / 2} ${w / 7} 0 0 0 ${w} 0 v${r} a${r} ${r} 0 0 1 -${r} ${r} h-${w - r * 2} a${r} ${r} 0 0 1 -${r} -${r} z"
+          fill="#111a24" opacity=".85"/>
+    ${id === 'capsula'
+      ? `<rect x="${x + 2}" y="${y - 7}" width="${w - 4}" height="7" rx="2" fill="${cor}"/>
+         <ellipse cx="${cx}" cy="${y - 7}" rx="${(w - 4) / 2}" ry="2" fill="#eaf2fb" opacity=".7"/>`
+      : `<path d="M${cx - 3} ${y + h * 0.42}l-2.5 5h3l-2 5 6-6.5h-3l2-3.5z" fill="#0a0f16" opacity=".85"/>`}`;
+}
+
+export function latinhaSVG({ tipo = 'lata', tam = 46 } = {}) {
+  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
+  return `<svg viewBox="0 0 40 52" width="${tam}" height="${tam * 52 / 40}" class="lata-arte">
+    <g style="filter:drop-shadow(0 0 6px ${cor}aa)">${cilindro(tipo, cor)}</g>
   </svg>`;
+}
+
+// O que faz flutuar é o conjunto: a lata sobe e desce, a sombra no chão
+// encolhe quando ela sobe, e o anel de luz fica parado no chão.
+export function marcaLatinhaHTML(tipo, tam = 46) {
+  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
+  return `<span class="lata-anel" style="--c:${cor}"></span>
+    <span class="lata-sombra"></span>
+    <span class="lata-sobe">${latinhaSVG({ tipo, tam })}</span>`;
 }
