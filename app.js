@@ -3,22 +3,22 @@
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
   territorioMaisPerto,
-} from './geo.js?v=59';
+} from './geo.js?v=60';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=59';
-import * as api from './api.js?v=59';
+} from './player.js?v=60';
+import * as api from './api.js?v=60';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=59';
+} from './visual.js?v=60';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=59';
-import * as mapaLatas from './mapalatas.js?v=59';
+} from './progresso.js?v=60';
+import * as mapaLatas from './mapalatas.js?v=60';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -420,7 +420,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=59');
+    const mod = await import('./boneco3d.js?v=60');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -874,9 +874,29 @@ async function initMap() {
       if (s) pegarLatinha(s);
     }).then((ok) => { if (ok) desenharLatinhas(); });
 
+    // Alcance: até onde a unidade consegue recolher. É geometria em METROS, a
+    // mesma coisa que a rua, então cresce e tomba junto com o mapa — e muda
+    // sozinho se o servidor mudar o raio de coleta.
+    map.addSource('alcance', { type: 'geojson', data: empty() });
+    map.addLayer({
+      id: 'alcance-fill', type: 'fill', source: 'alcance',
+      paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.055 },
+    });
+    map.addLayer({
+      id: 'alcance-line', type: 'line', source: 'alcance',
+      paint: {
+        'line-color': corDoPerfil(perfil), 'line-width': 1.6,
+        'line-opacity': 0.42, 'line-dasharray': [4, 3],
+      },
+    });
+
+    // Precisão do GPS: continua sendo OUTRA coisa, e por isso continua
+    // desenhada à parte. Ela diz o quanto o aparelho está incerto; o alcance
+    // diz até onde dá para pegar. Juntar as duas num círculo só seria mentir
+    // sobre uma delas. Fica mais apagada para não competir com o alcance.
     map.addSource('acc', { type: 'geojson', data: empty() });
-    map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.07 } });
-    map.addLayer({ id: 'acc-line', type: 'line', source: 'acc', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 1, 'line-opacity': 0.35 } });
+    map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.05 } });
+    map.addLayer({ id: 'acc-line', type: 'line', source: 'acc', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 1, 'line-opacity': 0.22 } });
 
     map.addSource('rumo', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'rumo-line', type: 'line', source: 'rumo', paint: { 'line-color': '#ffffff', 'line-width': 1.4, 'line-opacity': 0.4, 'line-dasharray': [1, 2] } });
@@ -920,6 +940,8 @@ function atualizarMarcador() {
     map.setPaintProperty('zone-line', 'line-color', cor);
     map.setPaintProperty('acc-fill', 'fill-color', cor);
     map.setPaintProperty('acc-line', 'line-color', cor);
+    map.setPaintProperty('alcance-fill', 'fill-color', cor);
+    map.setPaintProperty('alcance-line', 'line-color', cor);
   }
   if (!lastFix) { if (marker) { marker.remove(); marker = null; } return; }
 
@@ -940,7 +962,10 @@ function atualizarMarcador() {
 function drawAll() {
   if (!mapReady) return;
   map.getSource('zone').setData(session.origin ? circlePolygon(session.origin, CONFIG.FINISH_RADIUS_M) : empty());
-  map.getSource('acc').setData(lastFix && lastFix.acc > 8 ? circlePolygon(lastFix, lastFix.acc) : empty());
+  map.getSource('alcance').setData(lastFix ? circlePolygon(lastFix, coletaRaio, 48) : empty());
+  // a precisão só aparece quando é maior que o alcance: dentro dele ela não
+  // acrescenta nada e vira só mais um círculo na tela
+  map.getSource('acc').setData(lastFix && lastFix.acc > coletaRaio ? circlePolygon(lastFix, lastFix.acc) : empty());
   map.getSource('saida').setData(session.origin && !session.leftZone
     ? circlePolygon(session.origin, CONFIG.LEAVE_RADIUS_M) : empty());
   map.getSource('rumo').setData(session.origin && lastFix && session.leftZone && !session.canFinish
@@ -1390,7 +1415,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=59');
+    const mod = await import('./boneco3d.js?v=60');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
