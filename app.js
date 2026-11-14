@@ -2,22 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=48';
+} from './geo.js?v=49';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=48';
-import * as api from './api.js?v=48';
+} from './player.js?v=49';
+import * as api from './api.js?v=49';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
-  SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=48';
+  SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
+} from './visual.js?v=49';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=48';
-import * as mapaLatas from './mapalatas.js?v=48';
+} from './progresso.js?v=49';
+import * as mapaLatas from './mapalatas.js?v=49';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -235,6 +235,12 @@ function montarOpcoes() {
 // liberadas e o preco fica so na oficina, para nao oferecer um botao que falha.
 let abaPeca = SLOTS[0].id;
 
+// Peça de graça não está na loja do servidor; peça paga só vale se foi
+// comprada. Quem decide de verdade é o gatilho `trava_visual` no banco — isto
+// aqui é só para a tela não oferecer o que vai ser recusado.
+const pecaMinha = (slot, id) =>
+  precoDaPeca(slot, id) === 0 || temItem(carteira, itemDaPeca(slot, id));
+
 function visualDoRascunho() {
   if (!visualValido(rascunho.visual)) {
     const antigo = PRESET_ANTIGO[rascunho.modelo] || 'batedor';
@@ -264,9 +270,12 @@ function montarPecas() {
 
   const slot = SLOTS.find((s) => s.id === abaPeca) || SLOTS[0];
   let html = '<span class="sub-tit">MODELO</span><div class="opt-row">'
-    + CATALOGO[slot.id].map((it) =>
-      `<button type="button" data-peca="${slot.id}" data-valor="${it.id}" aria-pressed="${v[slot.id] === it.id}">`
-      + `<b>${it.nome}</b></button>`).join('')
+    + CATALOGO[slot.id].map((it) => {
+      const meu = pecaMinha(slot.id, it.id);
+      return `<button type="button" data-peca="${slot.id}" data-valor="${it.id}" `
+        + `class="${meu ? '' : 'travado'}" aria-pressed="${v[slot.id] === it.id}">`
+        + `<b>${it.nome}</b>${meu ? '' : `<i>${fmtOuro(precoDaPeca(slot.id, it.id))} ouro</i>`}</button>`;
+    }).join('')
     + '</div>';
   if (slot.cores) {
     const chave = `${slot.id}Cor`;
@@ -289,7 +298,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=48');
+    const mod = await import('./boneco3d.js?v=49');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -421,11 +430,17 @@ ui.onb.addEventListener('click', (e) => {
     return;
   }
   if (b.dataset.peca) {
-    // peça ainda nao esta na tabela `loja` do servidor, entao nao ha compra a
-    // fazer aqui: todas aparecem liberadas ate a migracao rodar
-    visualDoRascunho()[b.dataset.peca] = b.dataset.valor;
-    montarPecas();
-    desenharPreview();
+    const slot = b.dataset.peca;
+    const valor = b.dataset.valor;
+    const vestir = () => {
+      visualDoRascunho()[slot] = valor;
+      montarPecas();
+      desenharPreview();
+    };
+    // cor de peça não tem preço; peça paga passa pela loja antes
+    if (slot.endsWith('Cor') || slot === 'placa' || pecaMinha(slot, valor)) { vestir(); return; }
+    const item = CATALOGO[slot].find((x) => x.id === valor);
+    tentarComprar(itemDaPeca(slot, valor), item ? item.nome : valor).then((ok) => { if (ok) vestir(); });
     return;
   }
   if (b.dataset.cenario) {
@@ -483,10 +498,10 @@ ui.onb.addEventListener('click', (e) => {
     if (modoEdicao) {
       perfil = { ...rascunho };
       salvarPerfil(perfil);
-      // O servidor ainda nao tem coluna para o visual novo: so modelo, cor e
-      // cenario atravessam. As peças da unidade ficam no aparelho ate a
-      // migracao rodar — e e por isso que a oficina avisa isso em tela.
-      api.salvarVisual({ modelo: perfil.modelo, cor: perfil.cor, cenario: perfil.cenario });
+      api.salvarVisual({
+        modelo: perfil.modelo, cor: perfil.cor, cenario: perfil.cenario,
+        visual: visualCru(),
+      });
       fecharOnboarding();
       toast('Unidade atualizada.');
       return;
@@ -992,7 +1007,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=48');
+    const mod = await import('./boneco3d.js?v=49');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;

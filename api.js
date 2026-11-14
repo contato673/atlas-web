@@ -141,21 +141,30 @@ export async function meuPerfil() {
   return d && d[0] ? d[0] : null;
 }
 
-export async function salvarVisual({ modelo, cor, cenario }) {
+export async function salvarVisual({ modelo, cor, cenario, visual }) {
   if (!temServidor || !temSessao()) {
     return { ok: true };
   }
   try {
     const u = meuId();
     if (!u) return { ok: false, detalhe: 'sem sessão' };
-    try {
-      await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor, cenario } });
-    } catch (e) {
-      // banco ainda sem a coluna de cenário: grava o resto em vez de falhar
-      if (e.status !== 400) throw e;
-      await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo: { modelo, cor } });
+    // O servidor decide o que o jogador pode vestir: o gatilho `trava_visual`
+    // devolve a peça antiga para qualquer item pago que ele não comprou. Então
+    // mandar o visual inteiro é seguro — e o que volta é a verdade.
+    const tentativas = [
+      { modelo, cor, cenario, visual },
+      { modelo, cor, cenario },   // banco sem a coluna `visual`
+      { modelo, cor },            // banco sem a coluna `cenario`
+    ];
+    for (const corpo of tentativas) {
+      try {
+        await chamar(`/rest/v1/perfis?id=eq.${u}`, { metodo: 'PATCH', corpo });
+        return { ok: true };
+      } catch (e) {
+        if (e.status !== 400) throw e;
+      }
     }
-    return { ok: true };
+    return { ok: false, detalhe: 'o servidor recusou o perfil' };
   } catch (e) { return { ok: false, detalhe: e.message }; }
 }
 
