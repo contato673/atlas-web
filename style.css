@@ -830,3 +830,11 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .cores-nome button[aria-pressed=true] { border-color: var(--neon); }
 .cores-nome button[aria-pressed=true] i { color: var(--text); }
 .cores-nome button[aria-pressed=true] span { box-shadow: inset 0 0 0 1px #ffffff6b, 0 0 10px color-mix(in srgb, var(--neon) 45%, transparent); }
+
+/* Em fila de COR, o esmaecido de "travado" cai em cima da própria cor e a
+   lava: o jogador deixa de ver o que compraria. Aqui o quadradinho fica com a
+   cor cheia e quem avisa que é pago são a borda tracejada e o preço. */
+.opt-row.cores button.travado,
+.opt-row.cores-nome button.travado { opacity: 1; }
+.opt-row.cores button.travado span,
+.opt-row.cores-nome button.travado span { opacity: .92; }
