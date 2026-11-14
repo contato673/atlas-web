@@ -39,8 +39,8 @@
 </div>
 <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
 <script type="module">
-import * as mapaLatas from './mapalatas.js?v=47';
-import { CONFIG } from './geo.js?v=47';
+import * as mapaLatas from './mapalatas.js?v=48';
+import { CONFIG } from './geo.js?v=48';
 
 const CENTRO = [-54.6156, -20.4622]; // Campo Grande
 const map = new maplibregl.Map({
@@ -55,9 +55,11 @@ const map = new maplibregl.Map({
 const m = 1 / 111320;
 const falsas = [
   { celula: 'a', tipo: 'lata', lng: CENTRO[0], lat: CENTRO[1] + 60 * m },
-  { celula: 'b', tipo: 'lata', lng: CENTRO[0] + 70 * m, lat: CENTRO[1] },
-  { celula: 'c', tipo: 'turbo', lng: CENTRO[0] - 60 * m, lat: CENTRO[1] - 40 * m },
-  { celula: 'd', tipo: 'turbo', lng: CENTRO[0], lat: CENTRO[1] - 90 * m },
+  { celula: 'b', tipo: 'latao', lng: CENTRO[0] + 70 * m, lat: CENTRO[1] },
+  { celula: 'c', tipo: 'capsula', lng: CENTRO[0] - 60 * m, lat: CENTRO[1] - 40 * m },
+  // tipo que o cliente não conhece: tem de cair para a latinha comum, com
+  // lata E disco, nunca um disco sozinho
+  { celula: 'd', tipo: 'tipo-do-futuro', lng: CENTRO[0], lat: CENTRO[1] - 90 * m },
 ];
 const perto = (s) => s.celula === 'b';
 

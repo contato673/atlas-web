@@ -2,22 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=47';
+} from './geo.js?v=48';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=47';
-import * as api from './api.js?v=47';
+} from './player.js?v=48';
+import * as api from './api.js?v=48';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=47';
+} from './visual.js?v=48';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=47';
-import * as mapaLatas from './mapalatas.js?v=47';
+} from './progresso.js?v=48';
+import * as mapaLatas from './mapalatas.js?v=48';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -289,7 +289,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=47');
+    const mod = await import('./boneco3d.js?v=48');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -992,7 +992,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=47');
+    const mod = await import('./boneco3d.js?v=48');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;

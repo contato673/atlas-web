@@ -12,8 +12,8 @@
 // exatamente estas camadas com dados de mentira. Assim o que se confere com os
 // olhos é o código que roda no jogo, e não uma imitação dele.
 
-import { LATINHAS, latinhaSVG } from './progresso.js?v=47';
-import { circlePolygon } from './geo.js?v=47';
+import { LATINHAS, latinhaSVG } from './progresso.js?v=48';
+import { circlePolygon } from './geo.js?v=48';
 
 // Raio do disco no chão, em metros. NÃO é o raio de coleta (20 m, fixado pelo
 // Miguel): é só a marca visual, e 5 m é mais ou menos a largura de uma calçada.
@@ -90,17 +90,25 @@ export async function instalarIcone(map, aoTocar) {
 // O disco no chão e o ponto do ícone saem na MESMA coordenada, de propósito:
 // é isso que faz a lata parecer plantada naquele ponto e não pairando perto
 // dele. O ícone é ancorado pelo pé, então o pé cai no centro do disco.
+// O tipo é normalizado UMA vez e serve para a cor e para o ícone. Antes a cor
+// caía para 'lata' quando o tipo era desconhecido, mas o nome do ícone não:
+// sobrava um disco no chão sem lata nenhuma em cima, e sem nada para tocar.
+// Isso aconteceria de verdade no dia em que o servidor ganhasse um tipo novo
+// antes de o celular atualizar o cliente.
+export const tipoConhecido = (tipo) => (LATINHAS[tipo] ? tipo : 'lata');
+
 export function feicoes(spawns, ehPerto) {
   const fs = [];
   for (const s of spawns) {
-    const cor = (LATINHAS[s.tipo] || LATINHAS.lata).cor;
+    const tipo = tipoConhecido(s.tipo);
+    const cor = LATINHAS[tipo].cor;
     const perto = Boolean(ehPerto && ehPerto(s));
     const disco = circlePolygon({ lat: s.lat, lng: s.lng }, RAIO_CHAO_M, 24);
     disco.properties = { cor, perto, celula: s.celula };
     fs.push(disco);
     fs.push({
       type: 'Feature',
-      properties: { cor, perto, celula: s.celula, icone: `lata-${s.tipo}` },
+      properties: { cor, perto, celula: s.celula, icone: `lata-${tipo}` },
       geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
     });
   }
