@@ -796,6 +796,11 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .scr[data-scr="tenis"] .palco {
   position: sticky; top: 0; z-index: 3;
   margin: 0 auto 12px;
+  /* `flex: none` é o que impede o palco de ENCOLHER. A .scr-mid é uma coluna
+     flexível, e item de coluna flexível encolhe quando o conteúdo passa do
+     tamanho — com a prateleira de peças longa, o palco ia a ZERO de altura e o
+     robô sumia por completo. Não era só sair rolando da tela. */
+  flex: 0 0 auto;
 }
 /* a faixa que impede a prateleira de aparecer por trás do círculo ao rolar.
    Vai até fora da tela nos lados porque o palco é estreito e centralizado. */
