@@ -649,15 +649,24 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 
 /* As pegadas: cada par acende em sequência, como passo. É o mesmo gesto do
    jogo — andar é o que faz tudo acontecer aqui. */
-.carr-pegadas { display: flex; align-items: flex-end; gap: 13px; height: 34px; }
+.carr-pegadas { display: flex; align-items: flex-end; gap: 15px; height: 40px; }
+/* Pegada: o calcanhar é o bloco, os dedos são o ponto em cima. Sem os dedos
+   lê como cápsula, não como pé. */
 .carr-pegadas i {
-  display: block; width: 13px; height: 19px; border-radius: 7px 7px 5px 5px;
+  position: relative; display: block;
+  width: 12px; height: 16px; border-radius: 6px 6px 5px 5px;
   background: var(--neon, #22e3ff); opacity: .12;
   box-shadow: 0 0 10px var(--neon, #22e3ff);
   animation: passoNeon 1.4s linear infinite;
 }
-.carr-pegadas i:nth-child(odd) { transform: translateY(-7px) rotate(-7deg); }
-.carr-pegadas i:nth-child(even) { transform: translateY(5px) rotate(7deg); }
+.carr-pegadas i::after {
+  content: ''; position: absolute; left: 50%; top: -6px;
+  width: 9px; height: 6px; border-radius: 5px 5px 3px 3px;
+  transform: translateX(-50%);
+  background: inherit; box-shadow: inherit;
+}
+.carr-pegadas i:nth-child(odd) { transform: translateY(-8px) rotate(-9deg); }
+.carr-pegadas i:nth-child(even) { transform: translateY(6px) rotate(9deg); }
 .carr-pegadas i:nth-child(1) { animation-delay: 0s; }
 .carr-pegadas i:nth-child(2) { animation-delay: .2s; }
 .carr-pegadas i:nth-child(3) { animation-delay: .4s; }
