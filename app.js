@@ -2,22 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=51';
+} from './geo.js?v=52';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=51';
-import * as api from './api.js?v=51';
+} from './player.js?v=52';
+import * as api from './api.js?v=52';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=51';
+} from './visual.js?v=52';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=51';
-import * as mapaLatas from './mapalatas.js?v=51';
+} from './progresso.js?v=52';
+import * as mapaLatas from './mapalatas.js?v=52';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -60,6 +60,8 @@ let energia = null;
 let spawns = [];
 let marcasLata = new Map();
 let coletaRaio = 20;
+let trocaEmSegundos = 0;
+let trocaMarcadaEm = 0;
 let ultimaBuscaSpawn = 0;
 let ultimoCentroSpawn = null;
 let temFoto = false;
@@ -301,7 +303,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=51');
+    const mod = await import('./boneco3d.js?v=52');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -954,6 +956,76 @@ function orbitar() {
   palco.addEventListener('pointerleave', soltar);
 }
 
+/* ===================== dicas de primeira vez ===================== */
+// Aparecem nas primeiras entradas e somem para sempre quando o jogador diz que
+// entendeu. Contar entradas em vez de mostrar uma vez só é de propósito: na
+// primeira vez a pessoa está ocupada entendendo o mapa e não lê nada.
+const DICAS_KEY = 'atlas.dicas.v1';
+
+function dicasVistas() {
+  try { return JSON.parse(localStorage.getItem(DICAS_KEY)) || {}; } catch { return {}; }
+}
+
+function guardarDicas(d) {
+  try { localStorage.setItem(DICAS_KEY, JSON.stringify(d)); } catch { /* sem armazenamento */ }
+}
+
+function fecharDica({ paraSempre = false } = {}) {
+  const el = $('dica');
+  if (!el) return;
+  el.hidden = true;
+  if (paraSempre && el.dataset.id) {
+    const d = dicasVistas();
+    d[el.dataset.id] = 'ok';
+    guardarDicas(d);
+  }
+}
+
+// `vezes` é quantas entradas ela ainda aparece se o jogador nunca confirmar.
+function mostrarDica({ id, titulo, corpo, arte, vezes = 3 }) {
+  const el = $('dica');
+  if (!el || !ui.onb.hidden) return false;
+  const d = dicasVistas();
+  if (d[id] === 'ok') return false;
+  const jaVi = Number(d[id]) || 0;
+  if (jaVi >= vezes) return false;
+  d[id] = jaVi + 1;
+  guardarDicas(d);
+
+  el.dataset.id = id;
+  $('dica-tit').textContent = titulo;
+  $('dica-corpo').innerHTML = corpo;
+  $('dica-arte').innerHTML = arte || '';
+  el.hidden = false;
+  return true;
+}
+
+if ($('dica-x')) $('dica-x').onclick = () => fecharDica();
+if ($('dica-ok')) $('dica-ok').onclick = () => fecharDica({ paraSempre: true });
+
+// Quanto falta para as latinhas trocarem de lugar. O servidor manda isso em
+// toda consulta de spawn; aqui só vira texto.
+function faltaParaTrocar() {
+  if (!(trocaEmSegundos > 0)) return null;
+  const passou = Math.floor((Date.now() - trocaMarcadaEm) / 1000);
+  const falta = trocaEmSegundos - passou;
+  if (falta <= 0) return null;
+  return Math.max(1, Math.round(falta / 60));
+}
+
+function dicaDaEnergia() {
+  const min = faltaParaTrocar();
+  const quando = min ? `As próximas trocam em <em>${min} min</em>.` : 'Elas trocam a cada <em>20 minutos</em>.';
+  mostrarDica({
+    id: 'energia',
+    titulo: 'ENERGIA NA RUA',
+    arte: latinhaSVG({ tipo: 'lata', tam: 46 }),
+    corpo: 'Essas cápsulas são a carga que sobrou da rede, aflorando pelos ramais '
+      + 'debaixo das ruas. Chegue a <em>20 m</em> de uma para recolher.<br>'
+      + `${quando} O ponto seca e o resíduo brota em outro lugar — então vale sair andando.`,
+  });
+}
+
 /* ===================== tela de carregando ===================== */
 // Sai quando o mapa esta pronto E a camera ja esta em cima do jogador. Se o
 // GPS demorar, aparece o botao de entrar assim mesmo: ninguem pode ficar preso
@@ -986,7 +1058,11 @@ function sairDaTela() {
   const tela = $('carregando');
   if (!tela) return;
   tela.classList.add('saiu');
-  setTimeout(() => { tela.hidden = true; }, 500);
+  setTimeout(() => {
+    tela.hidden = true;
+    // espera o mapa assentar: balão em cima de tela ainda mexendo ninguém lê
+    setTimeout(dicaDaEnergia, 900);
+  }, 500);
 }
 
 function conferirCarregando() {
@@ -1079,7 +1155,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=51');
+    const mod = await import('./boneco3d.js?v=52');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1189,6 +1265,8 @@ async function atualizarSpawns(forcar = false) {
   const r = await api.spawnsPerto(lastFix.lat, lastFix.lng);
   if (!r || !r.ok) return;
   coletaRaio = Number(r.coleta_m) || 20;
+  trocaEmSegundos = Number(r.segundos_restantes) || 0;
+  trocaMarcadaEm = Date.now();
   spawns = (r.spawns || []).filter((s) => s.tem_ponto);
   desenharLatinhas();
 

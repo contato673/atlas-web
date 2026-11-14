@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=51">
+  <link rel="stylesheet" href="style.css?v=52">
 </head>
 <body>
 
@@ -274,9 +274,23 @@
   <canvas id="boneco3d" hidden></canvas>
   <input id="camera" type="file" accept="image/*" capture="environment" hidden>
 
+  <!-- Balão de primeira vez: explica a energia da rua. Some para sempre quando
+       o jogador toca em ENTENDI. -->
+  <div id="dica" hidden>
+    <div class="dica-caixa">
+      <div class="dica-arte" id="dica-arte"></div>
+      <div class="dica-txt">
+        <b id="dica-tit"></b>
+        <p id="dica-corpo"></p>
+      </div>
+      <button id="dica-x" type="button" aria-label="Fechar">×</button>
+    </div>
+    <button class="btn primary dica-ok" id="dica-ok" type="button">ENTENDI</button>
+  </div>
+
   <div id="toast" hidden><span id="toast-txt"></span><button id="toast-x" type="button" aria-label="Fechar">×</button></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=51"></script>
+  <script type="module" src="app.js?v=52"></script>
 </body>
 </html>

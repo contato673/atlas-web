@@ -697,3 +697,38 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   font: inherit; font-size: 15px; line-height: 1; cursor: pointer; opacity: .75;
 }
 #toast-x:active { opacity: 1; }
+
+/* ===================== balão de primeira vez ===================== */
+/* Fica acima do botão de rota, com a seta apontando para o mapa: o que ele
+   explica está lá em cima, não aqui embaixo. */
+#dica {
+  position: fixed; left: 12px; right: 12px; z-index: 40;
+  bottom: calc(118px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 10px;
+  animation: sobe .32s ease both;
+}
+.dica-caixa {
+  position: relative; display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 40px 14px 14px; border-radius: 16px;
+  background: #0d1824f2; border: 1px solid var(--neon, #22e3ff);
+  box-shadow: 0 10px 34px #000a, inset 0 0 0 1px #ffffff0a;
+}
+.dica-caixa::after {
+  content: ''; position: absolute; left: 34px; top: -9px;
+  width: 16px; height: 16px; transform: rotate(45deg);
+  background: #0d1824; border-left: 1px solid var(--neon, #22e3ff);
+  border-top: 1px solid var(--neon, #22e3ff);
+}
+.dica-arte { flex: none; line-height: 0; filter: drop-shadow(0 0 10px var(--neon, #22e3ff)); }
+.dica-txt b {
+  display: block; font-size: 12px; letter-spacing: .2em; color: var(--neon, #22e3ff);
+  margin-bottom: 5px;
+}
+.dica-txt p { margin: 0; font-size: 13.5px; line-height: 1.5; color: #cfdcec; }
+.dica-txt em { font-style: normal; color: #fff; font-weight: 600; }
+#dica-x {
+  position: absolute; right: 8px; top: 8px; width: 26px; height: 26px;
+  border-radius: 50%; border: 1px solid #ffffff2b; background: transparent;
+  color: #cfdcec; font: inherit; font-size: 16px; line-height: 1; opacity: .8;
+}
+.dica-ok { width: 100%; }
