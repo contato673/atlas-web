@@ -12,8 +12,8 @@
 // exatamente estas camadas com dados de mentira. Assim o que se confere com os
 // olhos é o código que roda no jogo, e não uma imitação dele.
 
-import { LATINHAS, latinhaSVG } from './progresso.js?v=60';
-import { circlePolygon } from './geo.js?v=60';
+import { LATINHAS, latinhaSVG } from './progresso.js?v=61';
+import { circlePolygon } from './geo.js?v=61';
 
 // Raio do disco no chão, em metros. NÃO é o raio de coleta (20 m, fixado pelo
 // Miguel): é só a marca visual, e 5 m é mais ou menos a largura de uma calçada.

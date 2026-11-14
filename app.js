@@ -3,22 +3,22 @@
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
   territorioMaisPerto,
-} from './geo.js?v=60';
+} from './geo.js?v=61';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=60';
-import * as api from './api.js?v=60';
+} from './player.js?v=61';
+import * as api from './api.js?v=61';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=60';
+} from './visual.js?v=61';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=60';
-import * as mapaLatas from './mapalatas.js?v=60';
+} from './progresso.js?v=61';
+import * as mapaLatas from './mapalatas.js?v=61';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -420,7 +420,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=60');
+    const mod = await import('./boneco3d.js?v=61');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -847,7 +847,28 @@ async function initMap() {
     if (msg) banner(`Problema no mapa: ${msg}`);
   });
 
-  map.on('load', () => {
+  // O `load` do MapLibre só dispara quando o estilo INTEIRO terminou — e um
+  // arquivo de estilo que falha (um 502 no sprite, por exemplo) segura esse
+  // evento para sempre. Quando isso acontece, nada aqui dentro roda: sem
+  // território, sem latinha, sem unidade, e o jogo fica parado sem erro
+  // nenhum no console. Já vi acontecer. Por isso a montagem tem um segundo
+  // caminho: se em 6 s o `load` não veio mas o estilo já dá para usar, monta
+  // assim mesmo.
+  let montou = false;
+  const montar = () => {
+    if (montou) return;
+    montou = true;
+    construirMapa();
+  };
+  map.on('load', montar);
+  setTimeout(() => {
+    if (montou) return;
+    try {
+      if (map.isStyleLoaded() || map.getStyle()) montar();
+    } catch { /* estilo ainda inutilizável: deixa o `load` tentar */ }
+  }, 6000);
+
+  function construirMapa() {
     levantarPredios();
     // Edificações do OpenStreetMap, no chão, discretas e só de perto.
     if (map.getLayer('building')) {
@@ -925,7 +946,7 @@ async function initMap() {
     drawAll();
     if (territorios) map.getSource('terr').setData(territorios);
     ligarBoneco3d();
-  });
+  }
 
   if (SIM) map.on('click', (e) => simulate(e.lngLat));
 }
@@ -1415,7 +1436,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=60');
+    const mod = await import('./boneco3d.js?v=61');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;

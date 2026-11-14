@@ -39,8 +39,8 @@
 </div>
 <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
 <script type="module">
-import * as mapaLatas from './mapalatas.js?v=60';
-import { CONFIG } from './geo.js?v=60';
+import * as mapaLatas from './mapalatas.js?v=61';
+import { CONFIG } from './geo.js?v=61';
 
 const CENTRO = [-54.6156, -20.4622]; // Campo Grande
 const map = new maplibregl.Map({
@@ -64,7 +64,20 @@ const falsas = [
 const perto = (s) => s.celula === 'b';
 
 const diag = document.getElementById('diag');
-map.on('load', async () => {
+// Mesmo cuidado do jogo: o `load` do MapLibre fica preso para sempre quando
+// algum arquivo do estilo falha (um 502 no sprite, por exemplo). Sem o segundo
+// caminho, a página fica em "carregando…" sem erro nenhum no console — foi
+// exatamente o que aconteceu aqui.
+let montou = false;
+const montar = async () => {
+  if (montou) return;
+  montou = true;
+  await construir();
+};
+map.on('load', montar);
+setTimeout(() => { try { if (map.getStyle()) montar(); } catch { /* ainda não */ } }, 6000);
+
+async function construir() {
   mapaLatas.instalarChao(map);
   const ok = await mapaLatas.instalarIcone(map, (celula) => {
     diag.textContent = `tocou na lata ${celula}`;
@@ -77,7 +90,7 @@ map.on('load', async () => {
       .map((l) => `${l.replace('latas-', '')}=${map.getLayer(l) ? 'ok' : 'NÃO'}`).join(' ')}`
     + `<br>raio do disco: ${mapaLatas.RAIO_CHAO_M} m · raio de coleta: ${CONFIG.LEAVE_RADIUS_M ? '20' : '20'} m`;
   window.__teste = { map, mapaLatas, falsas };
-});
+}
 
 document.getElementById('girar').onclick = () => map.easeTo({ bearing: map.getBearing() + 40, duration: 600 });
 document.getElementById('deitar').onclick = () => map.easeTo({ pitch: 60, duration: 600 });
