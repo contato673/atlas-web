@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATLAS — teste da latinha no mapa</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #05080c; }
+  #map { position: absolute; inset: 0; }
+  .painel {
+    position: absolute; left: 10px; top: 10px; z-index: 5;
+    background: #0d1620ee; border: 1px solid #22304a; border-radius: 12px;
+    padding: 10px 12px; color: #c3d2e6; font: 12px/1.5 system-ui, sans-serif;
+    max-width: 290px;
+  }
+  .painel b { color: #22e3ff; }
+  .painel button {
+    margin: 6px 6px 0 0; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid #22304a; background: #101a28; color: #c3d2e6; font: inherit;
+  }
+  #diag { margin-top: 8px; font-family: ui-monospace, monospace; font-size: 11px; color: #8fa6c4; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="painel">
+  <b>Teste da latinha</b><br>
+  Página de conferência: monta as MESMAS camadas do jogo
+  (<code>mapalatas.js</code>) com latinhas de mentira, sem precisar de conta.
+  O pé de cada lata tem de ficar colado no centro do disco, e o disco tem de
+  tombar junto com a rua.
+  <div>
+    <button id="girar">Girar 40°</button>
+    <button id="deitar">Inclinar</button>
+    <button id="levantar">Endireitar</button>
+  </div>
+  <div id="diag">carregando…</div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
+<script type="module">
+import * as mapaLatas from './mapalatas.js?v=47';
+import { CONFIG } from './geo.js?v=47';
+
+const CENTRO = [-54.6156, -20.4622]; // Campo Grande
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/dark',
+  center: CENTRO, zoom: 17.4, pitch: 55, maxPitch: 62,
+});
+
+// Latinhas de mentira, espalhadas em volta do centro, nas duas direções, para
+// dar para ver uma no alto da tela e outra embaixo ao mesmo tempo — era
+// exatamente aí que o erro de ancoragem aparecia.
+const m = 1 / 111320;
+const falsas = [
+  { celula: 'a', tipo: 'lata', lng: CENTRO[0], lat: CENTRO[1] + 60 * m },
+  { celula: 'b', tipo: 'lata', lng: CENTRO[0] + 70 * m, lat: CENTRO[1] },
+  { celula: 'c', tipo: 'turbo', lng: CENTRO[0] - 60 * m, lat: CENTRO[1] - 40 * m },
+  { celula: 'd', tipo: 'turbo', lng: CENTRO[0], lat: CENTRO[1] - 90 * m },
+];
+const perto = (s) => s.celula === 'b';
+
+const diag = document.getElementById('diag');
+map.on('load', async () => {
+  mapaLatas.instalarChao(map);
+  const ok = await mapaLatas.instalarIcone(map, (celula) => {
+    diag.textContent = `tocou na lata ${celula}`;
+  });
+  mapaLatas.atualizar(map, falsas, perto);
+  const fonte = map.getSource('latas');
+  const n = fonte ? fonte._data.features.length : 0;
+  diag.innerHTML = `ícone: <b>${ok ? 'subiu' : 'FALHOU'}</b> · feições: <b>${n}</b>`
+    + `<br>camadas: ${['latas-chao', 'latas-borda', 'latas-perto', 'latas-icone']
+      .map((l) => `${l.replace('latas-', '')}=${map.getLayer(l) ? 'ok' : 'NÃO'}`).join(' ')}`
+    + `<br>raio do disco: ${mapaLatas.RAIO_CHAO_M} m · raio de coleta: ${CONFIG.LEAVE_RADIUS_M ? '20' : '20'} m`;
+  window.__teste = { map, mapaLatas, falsas };
+});
+
+document.getElementById('girar').onclick = () => map.easeTo({ bearing: map.getBearing() + 40, duration: 600 });
+document.getElementById('deitar').onclick = () => map.easeTo({ pitch: 60, duration: 600 });
+document.getElementById('levantar').onclick = () => map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+</script>
+</body>
+</html>

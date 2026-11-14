@@ -2,21 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=46';
+} from './geo.js?v=47';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=46';
-import * as api from './api.js?v=46';
+} from './player.js?v=47';
+import * as api from './api.js?v=47';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=46';
+} from './visual.js?v=47';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=46';
+} from './progresso.js?v=47';
+import * as mapaLatas from './mapalatas.js?v=47';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -288,7 +289,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=46');
+    const mod = await import('./boneco3d.js?v=47');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -707,58 +708,14 @@ async function initMap() {
     map.addLayer({ id: 'terr-brilho', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 10, 'line-opacity': 0.18, 'line-blur': 5 } });
     map.addLayer({ id: 'terr-line', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 2, 'line-opacity': 0.9 } });
 
-    // O chao da latinha e geometria do mapa, nao desenho de tela: assim ele
-    // tomba com a inclinacao e escala com o zoom exatamente como a linha da
-    // quadra e da rua. Era isso que faltava para a lata parecer fincada.
-    map.addSource('latas', { type: 'geojson', data: empty() });
-    // Opacidade aqui e CONSTANTE de proposito. `fill-color` e `line-color`
-    // aceitam expressao sem discussao (o territorio ja usa), mas opacidade
-    // orientada a dado nem sempre: se o MapLibre recusar, a camada simplesmente
-    // nao pinta e ninguem avisa. A diferenca entre longe e perto vem de um
-    // filtro e de uma camada a mais, que e mecanismo garantido.
-    map.addLayer({
-      id: 'latas-chao', type: 'fill', source: 'latas',
-      filter: ['==', ['geometry-type'], 'Polygon'],
-      paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.14 },
-    });
-    map.addLayer({
-      id: 'latas-borda', type: 'line', source: 'latas',
-      filter: ['==', ['geometry-type'], 'Polygon'],
-      paint: { 'line-color': ['get', 'cor'], 'line-width': 2, 'line-opacity': 0.55 },
-    });
-    map.addLayer({
-      id: 'latas-perto', type: 'line', source: 'latas',
-      filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'perto'], true]],
-      paint: { 'line-color': ['get', 'cor'], 'line-width': 3, 'line-opacity': 0.95, 'line-blur': 1 },
-    });
-    // A lata em si tambem e camada do mapa, e nao um elemento solto por cima.
-    // Duas tentativas de ancorar um marcador de HTML falharam, e a razao de
-    // fundo e sempre a mesma: um elemento do DOM e posicionado DEPOIS, por
-    // cima do mapa ja desenhado, entao qualquer diferenca de arredondamento ou
-    // de ancoragem aparece como deslize. Como simbolo, a lata passa pela mesma
-    // matriz que a rua, no mesmo quadro — nao existe deslize possivel.
-    carregarIconesLata().then((ok) => {
-      if (!ok || map.getLayer('latas-icone')) return;
-      map.addLayer({
-        id: 'latas-icone', type: 'symbol', source: 'latas',
-        filter: ['==', ['geometry-type'], 'Point'],
-        layout: {
-          'icon-image': ['get', 'icone'],
-          'icon-anchor': 'bottom',
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true,
-          'icon-size': ['case', ['get', 'perto'], 0.62, 0.52],
-        },
-      });
-      map.on('click', 'latas-icone', (e) => {
-        const celula = e.features[0].properties.celula;
-        const s = spawns.find((x) => x.celula === celula);
-        if (s) pegarLatinha(s);
-      });
-      map.on('mouseenter', 'latas-icone', () => { map.getCanvas().style.cursor = 'pointer'; });
-      map.on('mouseleave', 'latas-icone', () => { map.getCanvas().style.cursor = ''; });
-      desenharLatinhas();
-    });
+    // As camadas da latinha moram em mapalatas.js, para a pagina de teste
+    // conseguir montar exatamente estas mesmas camadas com dados de mentira —
+    // assim o que se confere com os olhos e o codigo que roda no jogo.
+    mapaLatas.instalarChao(map);
+    mapaLatas.instalarIcone(map, (celula) => {
+      const s = spawns.find((x) => x.celula === celula);
+      if (s) pegarLatinha(s);
+    }).then((ok) => { if (ok) desenharLatinhas(); });
 
     map.addSource('acc', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.07 } });
@@ -1035,7 +992,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=46');
+    const mod = await import('./boneco3d.js?v=47');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1155,75 +1112,35 @@ async function atualizarSpawns(forcar = false) {
   if (achou) { ultimaBuscaSpawn = 0; setTimeout(() => atualizarSpawns(true), 600); }
 }
 
-// Transforma o desenho da lata numa imagem que o MapLibre sabe usar como
-// simbolo. Precisa do xmlns, senao o navegador recusa o data URL do SVG.
-let iconesProntos = null;
-
-function carregarIconesLata() {
-  if (iconesProntos) return iconesProntos;
-  iconesProntos = Promise.all(Object.keys(LATINHAS).map((tipo) => new Promise((pronto) => {
-    const id = `lata-${tipo}`;
-    if (map.hasImage && map.hasImage(id)) { pronto(true); return; }
-    const svg = latinhaSVG({ tipo, tam: 96 })
-      .replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
-    const img = new Image();
-    img.onload = () => {
-      try { map.addImage(id, img, { pixelRatio: 2 }); pronto(true); } catch { pronto(false); }
-    };
-    img.onerror = () => pronto(false);
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  }))).then((r) => r.every(Boolean));
-  return iconesProntos;
-}
-
-// Raio do disco no chao, em metros. Nao e o raio de coleta (20 m): e so a
-// marca visual, e 5 m e mais ou menos a largura de uma calcada.
-const RAIO_CHAO_M = 5;
-
 function desenharLatinhas() {
   const comIcone = mapReady && map.getLayer && map.getLayer('latas-icone');
-  const vivas = new Set();
-  const feicoes = [];
+  const perto = (s) => (lastFix ? haversine(lastFix, s) : Infinity) <= coletaRaio;
+  if (mapReady) mapaLatas.atualizar(map, spawns, perto);
 
+  // Reserva: se o simbolo nao subiu (imagem recusada, por exemplo), a lata
+  // ainda aparece como marcador de HTML, ancorada pelo pe. Assim ela nunca
+  // some da tela por causa de um detalhe de carregamento de imagem.
+  const vivas = new Set();
   for (const s of spawns) {
     vivas.add(s.celula);
-    const dist = lastFix ? haversine(lastFix, s) : Infinity;
-    const perto = dist <= coletaRaio;
-    const cor = (LATINHAS[s.tipo] || LATINHAS.lata).cor;
-
-    const disco = circlePolygon({ lat: s.lat, lng: s.lng }, RAIO_CHAO_M, 24);
-    disco.properties = { cor, perto, celula: s.celula };
-    feicoes.push(disco);
-    feicoes.push({
-      type: 'Feature',
-      properties: { cor, perto, celula: s.celula, icone: `lata-${s.tipo}` },
-      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
-    });
-
     if (comIcone) continue;
-    // Reserva: se o simbolo nao subiu (imagem recusada, por exemplo), a lata
-    // ainda aparece como marcador de HTML, ancorada pelo pe.
     let m = marcasLata.get(s.celula);
     if (!m) {
       const el = document.createElement('div');
       el.className = 'marca-lata';
-      el.style.setProperty('--c', cor);
+      el.style.setProperty('--c', (LATINHAS[s.tipo] || LATINHAS.lata).cor);
       el.innerHTML = marcaLatinhaHTML(s.tipo, 42);
       el.onclick = () => pegarLatinha(s);
       m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([s.lng, s.lat]).addTo(map);
       marcasLata.set(s.celula, m);
     }
-    m.getElement().classList.toggle('perto', perto);
-    m.getElement().classList.toggle('lata-longe', !perto);
+    m.getElement().classList.toggle('perto', perto(s));
+    m.getElement().classList.toggle('lata-longe', !perto(s));
   }
-
   for (const [celula, m] of marcasLata) {
     if (comIcone || !vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
   }
-
-  const fonte = mapReady && map.getSource ? map.getSource('latas') : null;
-  if (fonte) fonte.setData({ type: 'FeatureCollection', features: feicoes });
 }
 
 async function pegarLatinha(s) {
