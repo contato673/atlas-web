@@ -3,22 +3,22 @@
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
   territorioMaisPerto,
-} from './geo.js?v=54';
+} from './geo.js?v=55';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=54';
-import * as api from './api.js?v=54';
+} from './player.js?v=55';
+import * as api from './api.js?v=55';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=54';
+} from './visual.js?v=55';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=54';
-import * as mapaLatas from './mapalatas.js?v=54';
+} from './progresso.js?v=55';
+import * as mapaLatas from './mapalatas.js?v=55';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -298,7 +298,7 @@ function montarPecas() {
 
   if (abaPeca === 'placa') {
     alvo.innerHTML = '<span class="sub-tit">METAL DO CHASSI</span>'
-      + `<div class="opt-row">${PLACAS.map((t) =>
+      + `<div class="opt-row cores">${PLACAS.map((t) =>
         `<button type="button" data-peca="placa" data-valor="${t.id}" aria-pressed="${v.placa === t.id}" title="${t.nome}" aria-label="${t.nome}">`
         + `<span style="background:${t.cor}"></span></button>`).join('')}</div>`;
     return;
@@ -319,7 +319,9 @@ function montarPecas() {
     + '</div>';
   if (slot.cores) {
     const chave = `${slot.id}Cor`;
-    html += '<span class="sub-tit">COR</span><div class="opt-row">'
+    // `cores` é o que dá tamanho ao quadradinho: sem a classe ele tem 0 px e
+    // o botão fica vazio, que foi o "bug de cor" que o Miguel viu.
+    html += '<span class="sub-tit">COR</span><div class="opt-row cores">'
       + CORES_PECA.map((c) =>
         `<button type="button" data-peca="${chave}" data-valor="${c.id}" aria-pressed="${v[chave] === c.id}" title="${c.nome}" aria-label="${c.nome}">`
         + `<span style="background:${c.cor || corDoPerfil(rascunho)}"></span></button>`).join('')
@@ -409,19 +411,29 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=54');
+    const mod = await import('./boneco3d.js?v=55');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
-    const lado = 190;
-    tela.style.width = `${lado}px`;
-    tela.style.height = `${Math.round(lado * 1.2)}px`;
-    preview3d.dimensionar(lado, Math.round(lado * 1.2));
+    medirPreview();
+    window.addEventListener('resize', medirPreview);
     rodarPreview();
   } catch {
     // sem 3D o perfil continua com a silhueta em SVG, que sempre funciona
     preview3d = null;
   }
+}
+
+// A tela do preview acompanha o círculo do cenário. Com tamanho fixo ela
+// ficava mais alta que o círculo e os pés da unidade saíam para fora dele.
+function medirPreview() {
+  const tela = $('preview3d');
+  const palco = tela && tela.parentElement;
+  if (!preview3d || !tela || !palco) return;
+  const lado = Math.round(palco.clientWidth || 210);
+  tela.style.width = `${lado}px`;
+  tela.style.height = `${lado}px`;
+  preview3d.dimensionar(lado, lado);
 }
 
 function rodarPreview() {
@@ -1369,7 +1381,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=54');
+    const mod = await import('./boneco3d.js?v=55');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;

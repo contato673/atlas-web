@@ -787,3 +787,19 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .inim-carga.tem { color: #c6ff3d; }
 .inim-carga.falta { color: #ff8a1f; }
 @media (prefers-reduced-motion: reduce) { .inim-pulso { animation: none; opacity: .9; } }
+
+/* ===================== a unidade fica à vista ===================== */
+/* Na tela de montar, a prateleira de peças é longa: rolando até a Couraça ou
+   até o Inventário, o robô saía da tela e o jogador escolhia no escuro — o que
+   derruba o sentido de provar antes de comprar. Agora ele gruda no topo. */
+.scr[data-scr="tenis"] .scr-mid { justify-content: flex-start; }
+.scr[data-scr="tenis"] .palco {
+  position: sticky; top: 0; z-index: 3;
+  margin: 0 auto 12px;
+}
+/* a faixa que impede a prateleira de aparecer por trás do círculo ao rolar.
+   Vai até fora da tela nos lados porque o palco é estreito e centralizado. */
+.scr[data-scr="tenis"] .palco::before {
+  content: ''; position: absolute; inset: -10px -100vw -16px; z-index: -1;
+  background: linear-gradient(var(--bg) 0%, var(--bg) 76%, transparent 100%);
+}
