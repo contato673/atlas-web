@@ -522,37 +522,28 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 .chip.energia.ligado { border-color: #a855ff; box-shadow: 0 0 12px rgba(168,85,255,.45); }
 
 /* ===================== latinha de energia ===================== */
-/* NUNCA animar nem fazer transition de `transform` em .marca-lata: o MapLibre
-   escreve o translate de posicao NESTE MESMO elemento, a cada quadro em que o
-   mapa se move. Uma animation de transform aqui sobrescreve a posicao, e a
-   lata passa a balancar pelo mapa inteiro quando a tela anda — foi exatamente
-   isso que o Miguel viu. Efeito visual so nos filhos, e sem mexer o conjunto:
-   a lata fica parada no ponto ate trocar de lugar, a cada 20 minutos. */
+/* Duas regras que nao podem voltar:
+   1. NUNCA animar nem fazer transition de `transform` em .marca-lata. O
+      MapLibre escreve o translate de posicao NESTE MESMO elemento, a cada
+      quadro em que o mapa se move; animar transform aqui sobrescreve a posicao
+      e a lata passa a balancar pelo mapa inteiro.
+   2. O chao (anel e sombra) nao se desenha aqui. Ele e camada do mapa — fonte
+      `latas` no app.js — porque desenho de tela nao tomba com a inclinacao nem
+      escala com o zoom, e so geometria de mapa fica fincada como a quadra.
+   O marcador e ancorado por baixo (anchor: 'bottom'), entao o pe da lata cai
+   exatamente na coordenada. */
 .marca-lata {
-  position: relative; width: 46px; height: 68px; cursor: pointer;
+  position: relative; width: 46px; height: 52px; cursor: pointer;
   display: grid; place-items: end center;
 }
-.marca-lata .lata-anel {
-  position: absolute; bottom: 2px; left: 50%; width: 38px; height: 12px;
-  transform: translateX(-50%);
-  border: 1.5px solid var(--c); border-radius: 50%;
-  box-shadow: 0 0 10px var(--c); opacity: .5;
-}
-.marca-lata .lata-sombra {
-  position: absolute; bottom: 5px; left: 50%; width: 24px; height: 8px;
-  transform: translateX(-50%); border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.7), rgba(0,0,0,0) 70%);
-}
-/* a lata nasce um pouco acima do anel e fica ali: a altura e de margem, nao de
-   animacao, entao nada se mexe */
 .marca-lata .lata-sobe {
-  position: relative; line-height: 0; margin-bottom: 9px;
+  position: relative; line-height: 0;
   transition: filter .15s ease, opacity .15s ease;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .55));
 }
 .marca-lata.perto .lata-sobe { filter: brightness(1.3) drop-shadow(0 0 7px var(--c)); }
-.marca-lata.perto .lata-anel { opacity: .95; box-shadow: 0 0 16px var(--c); }
 .marca-lata:active .lata-sobe { opacity: .7; }
-.lata-longe { opacity: .55; }
+.lata-longe { opacity: .6; }
 
 /* ===================== avatar ===================== */
 .me-marker .me-shoe {

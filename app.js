@@ -2,21 +2,21 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=43';
+} from './geo.js?v=44';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=43';
-import * as api from './api.js?v=43';
+} from './player.js?v=44';
+import * as api from './api.js?v=44';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=43';
+} from './visual.js?v=44';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=43';
+} from './progresso.js?v=44';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -288,7 +288,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=43');
+    const mod = await import('./boneco3d.js?v=44');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -699,6 +699,19 @@ async function initMap() {
     map.addLayer({ id: 'terr-brilho', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 10, 'line-opacity': 0.18, 'line-blur': 5 } });
     map.addLayer({ id: 'terr-line', type: 'line', source: 'terr', paint: { 'line-color': corEquipe, 'line-width': 2, 'line-opacity': 0.9 } });
 
+    // O chao da latinha e geometria do mapa, nao desenho de tela: assim ele
+    // tomba com a inclinacao e escala com o zoom exatamente como a linha da
+    // quadra e da rua. Era isso que faltava para a lata parecer fincada.
+    map.addSource('latas', { type: 'geojson', data: empty() });
+    map.addLayer({
+      id: 'latas-chao', type: 'fill', source: 'latas',
+      paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': ['get', 'fundo'] },
+    });
+    map.addLayer({
+      id: 'latas-borda', type: 'line', source: 'latas',
+      paint: { 'line-color': ['get', 'cor'], 'line-width': 2, 'line-opacity': ['get', 'forca'] },
+    });
+
     map.addSource('acc', { type: 'geojson', data: empty() });
     map.addLayer({ id: 'acc-fill', type: 'fill', source: 'acc', paint: { 'fill-color': corDoPerfil(perfil), 'fill-opacity': 0.07 } });
     map.addLayer({ id: 'acc-line', type: 'line', source: 'acc', paint: { 'line-color': corDoPerfil(perfil), 'line-width': 1, 'line-opacity': 0.35 } });
@@ -936,7 +949,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=43');
+    const mod = await import('./boneco3d.js?v=44');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1056,22 +1069,37 @@ async function atualizarSpawns(forcar = false) {
   if (achou) { ultimaBuscaSpawn = 0; setTimeout(() => atualizarSpawns(true), 600); }
 }
 
+// Raio do disco no chao, em metros. Nao e o raio de coleta (20 m): e so a
+// marca visual, e 5 m e mais ou menos a largura de uma calcada.
+const RAIO_CHAO_M = 5;
+
 function desenharLatinhas() {
   const vivas = new Set();
+  const chao = [];
   for (const s of spawns) {
     vivas.add(s.celula);
     const dist = lastFix ? haversine(lastFix, s) : Infinity;
     const perto = dist <= coletaRaio;
+    const cor = (LATINHAS[s.tipo] || LATINHAS.lata).cor;
+
+    const disco = circlePolygon({ lat: s.lat, lng: s.lng }, RAIO_CHAO_M, 24);
+    disco.properties = { cor, forca: perto ? 0.95 : 0.45, fundo: perto ? 0.22 : 0.1 };
+    chao.push(disco);
+
     let m = marcasLata.get(s.celula);
     if (!m) {
       const el = document.createElement('div');
       el.className = 'marca-lata';
-      // a cor do tipo vai no proprio marcador, porque o brilho de "perto"
-      // tambem precisa dela, nao so o anel
-      el.style.setProperty('--c', (LATINHAS[s.tipo] || LATINHAS.lata).cor);
+      el.style.setProperty('--c', cor);
       el.innerHTML = marcaLatinhaHTML(s.tipo, 42);
       el.onclick = () => pegarLatinha(s);
-      m = new maplibregl.Marker({ element: el }).setLngLat([s.lng, s.lat]).addTo(map);
+      // anchor 'bottom' e o conserto: o padrao do MapLibre e 'center', entao o
+      // pe da lata ficava 34 px ABAIXO da coordenada. Offset constante em tela
+      // nao e offset constante no chao quando o mapa esta inclinado — perto do
+      // alto da tela 34 px valem muitos metros, embaixo valem poucos. Por isso
+      // a lata derivava sobre as ruas conforme a camera andava.
+      m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([s.lng, s.lat]).addTo(map);
       marcasLata.set(s.celula, m);
     }
     m.getElement().classList.toggle('perto', perto);
@@ -1079,6 +1107,9 @@ function desenharLatinhas() {
   }
   for (const [celula, m] of marcasLata) {
     if (!vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
+  }
+  if (mapReady && map.getSource('latas')) {
+    map.getSource('latas').setData({ type: 'FeatureCollection', features: chao });
   }
 }
 

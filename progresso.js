@@ -239,9 +239,9 @@ export function latinhaSVG({ tipo = 'lata', tam = 46 } = {}) {
 
 // O que faz flutuar é o conjunto: a lata sobe e desce, a sombra no chão
 // encolhe quando ela sobe, e o anel de luz fica parado no chão.
+// So a lata. O anel e a sombra no chao viraram camada do mapa (fonte `latas`
+// no app.js), porque desenho de tela nao tomba com a inclinacao nem escala com
+// o zoom — e era isso que fazia a lata parecer solta sobre as ruas.
 export function marcaLatinhaHTML(tipo, tam = 46) {
-  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
-  return `<span class="lata-anel" style="--c:${cor}"></span>
-    <span class="lata-sombra"></span>
-    <span class="lata-sobe">${latinhaSVG({ tipo, tam })}</span>`;
+  return `<span class="lata-sobe">${latinhaSVG({ tipo, tam })}</span>`;
 }
