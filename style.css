@@ -607,3 +607,15 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 }
 /* Com o 3D ligado, o boneco vetorial do marcador sai de cena. */
 .me-marker.tem3d .me-shoe { display: none; }
+
+/* ===================== oficina dentro do perfil ===================== */
+#preview3d { position: relative; z-index: 2; }
+.opt-abas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+.opt-abas::-webkit-scrollbar { display: none; }
+.opt-abas button {
+  white-space: nowrap; padding: 7px 12px; font-size: 12px; border-radius: 10px;
+  border: 1px solid #22304a; background: #101a28; color: #c3d2e6; font: inherit; font-size: 12px;
+}
+.opt-abas button[aria-pressed="true"] { border-color: var(--neon, #22e3ff); color: #eaf6ff; }
+#row-pecas .opt-row { margin-bottom: 10px; }
+#row-pecas .sub-tit { display: block; font-size: 10px; letter-spacing: .18em; color: #6d84a3; margin: 0 0 6px; }

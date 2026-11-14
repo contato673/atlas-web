@@ -27,117 +27,27 @@ export const NEONS = [
 // aparelho ou no banco vira a roupa correspondente, sem perder nada.
 export const ROUPA_ANTIGA = { runner: 'basico', hitop: 'corredor', chunky: 'jaqueta' };
 
+// Os tres modelos antigos continuam aqui so para validar a coluna `modelo` do
+// servidor, que ainda existe. O que o jogador monta hoje sao as pecas do
+// visual.js; estes nomes nao aparecem mais em tela nenhuma.
 export const ROUPAS = [
   { id: 'basico',   nome: 'Moletom',        desc: 'Capuz caído e cordão' },
   { id: 'corredor', nome: 'Corta-vento',    desc: 'Justo, com faixa refletiva' },
   { id: 'jaqueta',  nome: 'Jaqueta Tática', desc: 'Gola alta e ombreiras' },
 ];
 
-const P = {
-  peleL: '#e2b78f', pele: '#c89a72', peleS: '#9e7249',
-  panoL: '#2d3f54', pano: '#1f2d3d', panoS: '#121b26',
-  calcaL: '#2a384a', calca: '#1d2836', calcaS: '#121a24',
-  sapatoL: '#1a2531', sapato: '#0e151e',
-  cabeloL: '#2a3747', cabelo: '#161e29',
-  linha: '#0a0f16',
-};
-
-function cabeca(fac, cor) {
-  return `
-    <g>
-      <path d="M53 57h14v9H53z" fill="${P.peleS}"/>
-      <path d="M53 57h6v9h-6z" fill="${P.pele}"/>
-      <ellipse cx="60" cy="40" rx="19" ry="19.5" fill="${P.pele}"/>
-      <path d="M60 20.5a19 19.5 0 0 1 0 39 19 19.5 0 0 0 0-39z" fill="${P.peleS}" opacity=".55"/>
-      <ellipse cx="52" cy="38" rx="9" ry="12" fill="${P.peleL}" opacity=".45"/>
-      <path d="M41 45q-3.5 0-3.5-4.5T41 36z" fill="${P.pele}"/>
-      <path d="M79 45q3.5 0 3.5-4.5T79 36z" fill="${P.peleS}"/>
-      <path d="M41.2 38q0-18 18.8-18T79 38q-2.5-7.5-18.9-7.5T41.2 38z" fill="${P.cabelo}"/>
-      <path d="M44 24q14-8 28 0-9-4.5-14-4.5T44 24z" fill="${P.cabeloL}" opacity=".7"/>
-      <path d="M42 25.5q18-12.5 36 0 2 7.5.6 12.5-4-8.5-18.6-8.5T41.4 38Q40 33 42 25.5z" fill="${fac}"/>
-      <path d="M60 21.2q9.5 0 18 4.3 2 7.5.6 12.5-3.4-7.2-14.6-8.3z" fill="#000" opacity=".22"/>
-      <path d="M44 24.5q7-4 16-4" stroke="#fff" stroke-width="2" opacity=".28" fill="none" stroke-linecap="round"/>
-      <path d="M38.5 36.5h43q1 4-1.2 5H39.7q-2.2-1-1.2-5z" fill="${fac}"/>
-      <path d="M38.5 36.5h43q1 4-1.2 5H39.7q-2.2-1-1.2-5z" fill="#000" opacity=".3"/>
-      <path d="M38.5 36.5h22q.4 4-.6 5H39.7q-2.2-1-1.2-5z" fill="#fff" opacity=".12"/>
-      <ellipse cx="52.5" cy="46.5" rx="2.5" ry="2.7" fill="${P.linha}"/>
-      <ellipse cx="66.5" cy="46.5" rx="2.3" ry="2.6" fill="${P.linha}"/>
-      <circle cx="53.3" cy="45.7" r=".8" fill="#fff" opacity=".85"/>
-      <path d="M48.5 42q3-1.6 6-.4M64 41.6q3-1.2 6 .4" stroke="${P.cabelo}" stroke-width="1.7" fill="none" stroke-linecap="round"/>
-      <path d="M58.5 50.5q1.5 1.5 3 0" stroke="${P.peleS}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      <path d="M55 53.5q5 4 10.5.5" stroke="${P.linha}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-      <path d="M79 47.5q2.5-4 0-9" stroke="${cor}" stroke-width="1.6" fill="none" opacity=".75" stroke-linecap="round"/>
-    </g>`;
-}
-
-function pernas(cor) {
-  return `
-    <path d="M46 99h12l-1.5 30H45l1-30z" fill="${P.calca}"/>
-    <path d="M46 99h5l-1 30h-5l1-30z" fill="${P.calcaL}"/>
-    <path d="M62 99h12l1.5 30H63.5L62 99z" fill="${P.calcaS}"/>
-    <path d="M40.5 126h17.5l.6 8H39.2q-1.2-4 1.3-8z" fill="${P.sapato}"/>
-    <path d="M40.5 126h8l.3 8h-9.6q-1.2-4 1.3-8z" fill="${P.sapatoL}"/>
-    <path d="M63.4 126H81q2.5 4 1.3 8H62.8z" fill="${P.sapato}"/>
-    <path d="M39.2 131h19.5l.1 3H39q-.6-1.6.2-3zM62.9 131h19.3q.8 1.4.2 3H63z" fill="${cor}"/>`;
-}
-
-function roupaDe(id, cor, fac) {
-  // Silhueta estreita: tronco de 42 a 78, mangas coladas de 33 a 42 e de 78 a 87.
-  // Ombro arredondado, cintura mais fina que o ombro, mão na ponta da manga.
-  const manga = `
-    <path d="M42 71q-7 1-9 6l-4 22q5 3 11 3l6-28z" fill="${P.panoL}"/>
-    <path d="M78 71q7 1 9 6l4 22q-5 3-11 3l-6-28z" fill="${P.panoS}"/>
-    <path d="M29 99q5 3 11 3l-1.5 7q-6-.5-11-3.5z" fill="${P.pele}"/>
-    <path d="M91 99q-5 3-11 3l1.5 7q6-.5 11-3.5z" fill="${P.peleS}"/>`;
-
-  if (id === 'corredor') {
-    return `
-      <path d="M48 66h24q6 1 6.5 6l1.5 29q-18 5-36 0l1.5-29q.5-5 6.5-6z" fill="${P.pano}"/>
-      <path d="M48 66h10l-2 36q-5-.4-9.5-1l1.5-29q.5-5 6.5-6z" fill="${P.panoL}"/>
-      <path d="M68 66h4q6 1 6.5 6l1.5 29q-4.5 1.2-9.5 1.8z" fill="${P.panoS}"/>
-      <path d="M44.6 73h31v5h-31z" fill="${cor}"/>
-      <path d="M44.6 73h9v5h-9z" fill="#fff" opacity=".3"/>
-      <path d="M43.6 88h33.6l.3 4.2H43.3z" fill="${cor}" opacity=".55"/>
-      <path d="M60 66v36" stroke="${fac}" stroke-width="1.8" opacity=".8"/>
-      ${manga}`;
-  }
-  if (id === 'jaqueta') {
-    return `
-      <path d="M46 66h28q7 1 7.5 7l1.5 29q-23 6-46 0L38.5 73q.5-6 7.5-7z" fill="${P.pano}"/>
-      <path d="M46 66h10l-2.5 37q-5.5-.5-11-1.5L38.5 73q.5-6 7.5-7z" fill="${P.panoL}"/>
-      <path d="M70 66h4q7 1 7.5 7l1.5 29q-5.5 1.4-12 2.2z" fill="${P.panoS}"/>
-      <path d="M52 64h16l-3 12H55z" fill="${cor}"/>
-      <path d="M52 64h6l-2 12h-3z" fill="#fff" opacity=".3"/>
-      <path d="M52 64h16l-.8 3H52.8z" fill="#000" opacity=".3"/>
-      <path d="M60 76v26" stroke="${cor}" stroke-width="2.2" opacity=".95"/>
-      <path d="M40 68q7-3 13-3l-1 9q-6 0-13 2z" fill="${fac}"/>
-      <path d="M40 68q5-2 9-2.6l-.7 8.6q-4.6.3-8.6 1.4z" fill="#fff" opacity=".18"/>
-      <path d="M80 68q-7-3-13-3l1 9q6 0 13 2z" fill="${fac}"/>
-      <path d="M80 68q-7-3-13-3l.3 2.4q6 .2 12 2.4z" fill="#000" opacity=".3"/>
-      ${manga}`;
-  }
-  return `
-    <path d="M47 66h26q6.5 1 7 6.5L82 102q-22 6-44 0l2-29.5q.5-5.5 7-6.5z" fill="${P.pano}"/>
-    <path d="M47 66h10l-2.5 37q-5.5-.5-11-1.5L38 72.5q.5-5.5 7-6.5z" fill="${P.panoL}"/>
-    <path d="M69 66h4q6.5 1 7 6.5L82 102q-5.5 1.4-12 2.2z" fill="${P.panoS}"/>
-    <path d="M44 66q16 10 32 0l-2.5-4.5q-13.5 7.5-27 0z" fill="${P.panoL}"/>
-    <path d="M60 66q8.5-1.6 16-4.5L73.5 57q-6.5 3.6-13.5 5z" fill="${P.panoS}" opacity=".85"/>
-    <path d="M56 69v6.5M64 69v6" stroke="${cor}" stroke-width="1.9" stroke-linecap="round"/>
-    <path d="M60 77v25" stroke="${fac}" stroke-width="1.8" opacity=".6"/>
-    <path d="M45 99h30l.4 5H44.6z" fill="${P.panoL}"/>
-    ${manga}`;
-}
-
-// Aceita tanto `roupa` quanto `modelo` (o nome da coluna no banco), e a
-// facção tanto pelo id ('meridiano') quanto por uma cor pronta.
+// Silhueta da unidade em SVG. O visual detalhado (chassi, elmo, visor, peças)
+// mora no 3D; aqui só é preciso a silhueta, porque esta função desenha de 24 a
+// 118 px — no chip do HUD, no ranking e no dono do território. Num avatar de
+// 24 px o que se lê é o contorno e os dois sensores acesos, nada mais.
+//
+// Aceita tanto `roupa` quanto `modelo` (nomes antigos) e a agência tanto pelo
+// id quanto por uma cor pronta, para nenhuma das sete chamadas quebrar.
 export function avatarSVG({
-  roupa, modelo, cor = '#22e3ff', faccao = 'meridiano', largura = 90, sombra = true,
+  cor = '#22e3ff', faccao = 'meridiano', largura = 90, sombra = true,
 } = {}) {
-  let peca = roupa || modelo;
-  if (ROUPA_ANTIGA[peca]) peca = ROUPA_ANTIGA[peca];
-  if (!ROUPAS.some((r) => r.id === peca)) peca = 'basico';
   const corFac = FACCOES[faccao] ? FACCOES[faccao].cor : faccao;
-  return montarAvatar(peca, cor, corFac, largura, sombra);
+  return montarAvatar(cor, corFac, largura, sombra);
 }
 
 // Contador de ids para os gradientes: dois SVGs na mesma página não podem
@@ -145,7 +55,55 @@ export function avatarSVG({
 // e pelos cenários, e foi apagado sem querer junto com a geometria do tênis.
 let uid = 0;
 let semente = 0;
-function montarAvatar(roupa, cor, faccao, largura, sombra) {
+
+const C = {
+  claro: '#3b4552', meio: '#262d36', fundo: '#1a2028', vao: '#11161c',
+};
+
+function membros(cor) {
+  return `
+    <!-- pernas, com a junta do joelho aparente -->
+    <path d="M47 94h11v22H47z" fill="${C.fundo}"/>
+    <path d="M62 94h11v22H62z" fill="${C.meio}"/>
+    <rect x="46.4" y="110" width="12.2" height="3.4" fill="${cor}" opacity=".9"/>
+    <rect x="61.4" y="110" width="12.2" height="3.4" fill="${cor}" opacity=".9"/>
+    <path d="M45 116h15v10H45z" fill="${C.meio}"/>
+    <path d="M60 116h15v10H60z" fill="${C.claro}" opacity=".55"/>
+    <path d="M43 126h18v7H43zM59 126h18v7H59z" fill="${C.vao}"/>
+    <!-- bracos -->
+    <path d="M31 62h9v30h-9z" fill="${C.fundo}"/>
+    <path d="M80 62h9v30h-9z" fill="${C.meio}"/>
+    <rect x="30.4" y="86" width="10.2" height="3.4" fill="${cor}" opacity=".9"/>
+    <rect x="79.4" y="86" width="10.2" height="3.4" fill="${cor}" opacity=".9"/>
+    <path d="M30 92h11v9H30zM79 92h11v9H79z" fill="${C.claro}" opacity=".7"/>`;
+}
+
+function torso(cor, fac, id) {
+  return `
+    <path d="M40 54h40l-5 42H45z" fill="url(#t${id})"/>
+    <!-- ombreiras -->
+    <path d="M28 54l14-5v15l-14 3z" fill="${C.claro}" opacity=".8"/>
+    <path d="M92 54l-14-5v15l14 3z" fill="${C.meio}"/>
+    <!-- faixa da agencia -->
+    <rect x="44" y="88" width="32" height="3.6" fill="${fac}" opacity=".85"/>
+    <!-- nucleo de energia -->
+    <path d="M60 64l8 4.6v9.2L60 82.4l-8-4.6v-9.2z" fill="${C.vao}"/>
+    <path d="M60 67.4l5 2.9v5.8l-5 2.9-5-2.9v-5.8z" fill="${cor}"/>`;
+}
+
+function cabecaRobo(cor, id) {
+  return `
+    <path d="M52 48h16v6H52z" fill="${C.vao}"/>
+    <path d="M44 22h32v26a4 4 0 0 1-4 4H48a4 4 0 0 1-4-4z" fill="url(#c${id})"/>
+    <path d="M46 20h28l-3-5H49z" fill="${C.claro}" opacity=".75"/>
+    <!-- visor: os dois sensores sao a unica coisa que se le num avatar de 24 px -->
+    <rect x="46" y="28" width="28" height="13" rx="2.5" fill="${C.vao}"/>
+    <ellipse cx="53.5" cy="34.5" rx="3.8" ry="3.4" fill="${cor}"/>
+    <ellipse cx="66.5" cy="34.5" rx="3.8" ry="3.4" fill="${cor}"/>
+    <rect x="54" y="44" width="12" height="2.6" fill="${C.vao}"/>`;
+}
+
+function montarAvatar(cor, fac, largura, sombra) {
   const id = `a${(semente += 1)}`;
   return `<svg viewBox="0 0 120 150" width="${largura}" height="${largura * 150 / 120}" class="avatar">
     <defs>
@@ -153,12 +111,21 @@ function montarAvatar(roupa, cor, faccao, largura, sombra) {
         <stop offset="0" stop-color="#000" stop-opacity=".6"/>
         <stop offset="1" stop-color="#000" stop-opacity="0"/>
       </radialGradient>
+      <linearGradient id="t${id}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${C.fundo}"/>
+        <stop offset=".55" stop-color="${C.meio}"/>
+        <stop offset="1" stop-color="${C.claro}"/>
+      </linearGradient>
+      <linearGradient id="c${id}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="${C.meio}"/>
+        <stop offset=".6" stop-color="${C.claro}"/>
+        <stop offset="1" stop-color="${C.meio}"/>
+      </linearGradient>
     </defs>
     ${sombra ? `<ellipse cx="60" cy="137" rx="30" ry="9" fill="url(#s${id})"/>` : ''}
-    ${pernas(cor)}
-    ${roupaDe(roupa, cor, faccao)}
-    ${cabeca(faccao, cor)}
-    <path d="M78 71q7 1 9 6l4 22" fill="none" stroke="${cor}" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>
+    ${membros(cor)}
+    ${torso(cor, fac, id)}
+    ${cabecaRobo(cor, id)}
   </svg>`;
 }
 

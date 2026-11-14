@@ -166,10 +166,15 @@ export const itemDaPeca = (slot, id) => `${slot}:${id}`;
 export const PECAS_GRATIS = Object.entries(CATALOGO)
   .flatMap(([slot, itens]) => itens.filter((i) => !i.custo).map((i) => `${slot}:${i.id}`));
 
+// Responde se ESTE visual pode ser usado como está — não se daria para
+// consertá-lo. A versão anterior preenchia o padrão antes de conferir, então
+// dizia "válido" para `undefined`, e quem confiou na resposta recebeu de volta
+// o próprio `undefined`: foi assim que a tela de perfil quebrou. Aqui toda
+// peça precisa estar presente e conhecida.
 export function visualValido(visual) {
-  const v = { ...VISUAL_PADRAO, ...(visual || {}) };
+  if (!visual || typeof visual !== 'object') return false;
   for (const slot of PECAS) {
-    if (!CATALOGO[slot].some((i) => i.id === v[slot])) return false;
+    if (!CATALOGO[slot].some((i) => i.id === visual[slot])) return false;
   }
-  return PLACAS.some((p) => p.id === v.placa);
+  return PLACAS.some((p) => p.id === visual.placa);
 }

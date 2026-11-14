@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=42">
+  <link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
 
@@ -154,10 +154,11 @@
         <div class="tit-linha"><h2>Monte sua unidade</h2><div class="bolsa" id="bolsa" hidden></div></div>
       </div>
       <div class="scr-mid">
-        <div class="palco"><div id="cenario-fundo"></div><div id="preview"></div></div>
+        <div class="palco"><div id="cenario-fundo"></div><canvas id="preview3d" hidden></canvas><div id="preview"></div></div>
         <div class="opt">
-          <span class="opt-tit">Roupa</span>
-          <div class="opt-row" id="row-modelo"></div>
+          <span class="opt-tit">Unidade</span>
+          <div class="opt-abas" id="row-abas"></div>
+          <div id="row-pecas"></div>
         </div>
         <div class="opt">
           <span class="opt-tit">Cenário</span>
@@ -187,7 +188,7 @@
             <span id="resumo-ten">—</span>
           </div>
         </div>
-        <p class="nota">Dá para mudar a roupa depois, pelo seu nome no alto do mapa.</p>
+        <p class="nota">Dá para remontar a unidade depois, pelo seu nome no alto do mapa. As peças ainda ficam só neste aparelho.</p>
       </div>
       <div class="scr-foot">
         <button class="btn ghost" data-back="tenis">VOLTAR</button>
@@ -266,6 +267,6 @@
   <div id="toast" hidden></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=42"></script>
+  <script type="module" src="app.js?v=43"></script>
 </body>
 </html>

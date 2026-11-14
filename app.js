@@ -2,20 +2,21 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=42';
+} from './geo.js?v=43';
 import {
-  FACCOES, NEONS, ROUPAS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
+  FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=42';
-import * as api from './api.js?v=42';
+} from './player.js?v=43';
+import * as api from './api.js?v=43';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
-} from './visual.js?v=42';
+  SLOTS, CATALOGO, PLACAS, CORES_PECA,
+} from './visual.js?v=43';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=42';
+} from './progresso.js?v=43';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -123,6 +124,11 @@ const MOTIVOS = {
   sem_conta: 'Não existe conta com esse apelido.',
 };
 
+// Os tres modelos antigos viram conjuntos de peça equivalentes, para quem ja
+// tinha roupa comprada nao abrir o jogo e encontrar outra unidade. Fica aqui em
+// cima porque `const` nao sobe, e duas funcoes diferentes dependem dele.
+const PRESET_ANTIGO = { basico: 'batedor', corredor: 'corredor', jaqueta: 'bastiao' };
+
 /* ===================== pré-telas ===================== */
 const LORE = [
   {
@@ -194,12 +200,7 @@ function fecharOnboarding() {
 }
 
 function montarOpcoes() {
-  $('row-modelo').innerHTML = ROUPAS.map((m) => {
-    const item = `roupa:${m.id}`;
-    const meu = temItem(carteira, item);
-    return `<button type="button" data-modelo="${m.id}" data-item="${item}" class="${meu ? '' : 'travado'}">`
-      + `<b>${m.nome}</b><i>${meu ? m.desc : `${fmtOuro(precoDe(item))} ouro`}</i></button>`;
-  }).join('');
+  montarPecas();
 
   $('row-cor').innerHTML = NEONS.map((c) => {
     const item = `cor:${c.id}`;
@@ -227,6 +228,93 @@ function montarOpcoes() {
   marcarEscolhas();
 }
 
+/* ===================== oficina dentro do perfil ===================== */
+// As peças da unidade ainda NAO estao na tabela `loja` do servidor, entao
+// comprar peça daria erro. Enquanto a migracao nao roda, todas aparecem
+// liberadas e o preco fica so na oficina, para nao oferecer um botao que falha.
+let abaPeca = SLOTS[0].id;
+
+function visualDoRascunho() {
+  if (!visualValido(rascunho.visual)) {
+    const antigo = PRESET_ANTIGO[rascunho.modelo] || 'batedor';
+    rascunho.visual = { ...(PRESETS[antigo] || VISUAL_PADRAO) };
+  }
+  return rascunho.visual;
+}
+
+function montarAbas() {
+  const abas = [...SLOTS.map((s) => [s.id, s.nome]), ['placa', 'Metal']];
+  $('row-abas').innerHTML = abas.map(([id, nome]) =>
+    `<button type="button" data-slot="${id}" aria-pressed="${abaPeca === id}">${nome}</button>`).join('');
+}
+
+function montarPecas() {
+  montarAbas();
+  const v = visualDoRascunho();
+  const alvo = $('row-pecas');
+
+  if (abaPeca === 'placa') {
+    alvo.innerHTML = '<span class="sub-tit">METAL DO CHASSI</span>'
+      + `<div class="opt-row">${PLACAS.map((t) =>
+        `<button type="button" data-peca="placa" data-valor="${t.id}" aria-pressed="${v.placa === t.id}" title="${t.nome}" aria-label="${t.nome}">`
+        + `<span style="background:${t.cor}"></span></button>`).join('')}</div>`;
+    return;
+  }
+
+  const slot = SLOTS.find((s) => s.id === abaPeca) || SLOTS[0];
+  let html = '<span class="sub-tit">MODELO</span><div class="opt-row">'
+    + CATALOGO[slot.id].map((it) =>
+      `<button type="button" data-peca="${slot.id}" data-valor="${it.id}" aria-pressed="${v[slot.id] === it.id}">`
+      + `<b>${it.nome}</b></button>`).join('')
+    + '</div>';
+  if (slot.cores) {
+    const chave = `${slot.id}Cor`;
+    html += '<span class="sub-tit">COR</span><div class="opt-row">'
+      + CORES_PECA.map((c) =>
+        `<button type="button" data-peca="${chave}" data-valor="${c.id}" aria-pressed="${v[chave] === c.id}" title="${c.nome}" aria-label="${c.nome}">`
+        + `<span style="background:${c.cor || corDoPerfil(rascunho)}"></span></button>`).join('')
+      + '</div>';
+  }
+  alvo.innerHTML = html;
+}
+
+/* ---- o preview em 3D, a mesma unidade que anda no mapa ---- */
+let preview3d = null;
+let lacoPreview = 0;
+let giroPreview = 0;
+
+async function ligarPreview3d() {
+  if (preview3d) return;
+  const tela = $('preview3d');
+  if (!tela) return;
+  try {
+    const mod = await import('./boneco3d.js?v=43');
+    preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
+    tela.hidden = false;
+    $('preview').hidden = true;
+    const lado = 190;
+    tela.style.width = `${lado}px`;
+    tela.style.height = `${Math.round(lado * 1.2)}px`;
+    preview3d.dimensionar(lado, Math.round(lado * 1.2));
+    rodarPreview();
+  } catch {
+    // sem 3D o perfil continua com a silhueta em SVG, que sempre funciona
+    preview3d = null;
+  }
+}
+
+function rodarPreview() {
+  cancelAnimationFrame(lacoPreview);
+  const passo = () => {
+    lacoPreview = requestAnimationFrame(passo);
+    const tela = $('preview3d');
+    if (!preview3d || !tela || tela.hidden || ui.onb.hidden) return;
+    giroPreview += 0.006;
+    preview3d.quadro(false, 0, Math.sin(giroPreview) * 0.6);
+  };
+  passo();
+}
+
 async function tentarComprar(item, nome) {
   if (!carteira) { toast('A loja ainda não está ligada no servidor.'); return false; }
   const preco = precoDe(item);
@@ -252,7 +340,7 @@ async function tentarComprar(item, nome) {
 }
 
 function marcarEscolhas() {
-  document.querySelectorAll('[data-modelo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modelo === rascunho.modelo)));
+  document.querySelectorAll('[data-slot]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.slot === abaPeca)));
   document.querySelectorAll('[data-cor]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cor === rascunho.cor)));
   document.querySelectorAll('[data-cenario]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.cenario === rascunho.cenario)));
   document.querySelectorAll('[data-fac]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.fac === rascunho.faccao)));
@@ -261,15 +349,20 @@ function marcarEscolhas() {
 function desenharPreview() {
   $('cenario-fundo').innerHTML = cenarioSVG({ id: rascunho.cenario, cor: corDoPerfil(rascunho), largura: 300 });
   $('preview').innerHTML = avatarSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 118 });
+  ligarPreview3d();
+  if (preview3d) {
+    try { preview3d.vestir(resolverVisual(visualDoRascunho(), corDoPerfil(rascunho))); } catch { /* segue */ }
+  }
 }
 
 function desenharResumo() {
   $('resumo-shoe').innerHTML = avatarSVG({ ...rascunho, cor: corDoPerfil(rascunho), largura: 92 });
   $('resumo-nome').textContent = rascunho.apelido;
-  $('resumo-fac').textContent = `FACÇÃO ${FACCOES[rascunho.faccao].nome}`;
-  const m = ROUPAS.find((x) => x.id === rascunho.modelo) || ROUPAS[0];
+  $('resumo-fac').textContent = `AGÊNCIA ${FACCOES[rascunho.faccao].nome}`;
+  const v = visualDoRascunho();
+  const chassi = (CATALOGO.chassi.find((x) => x.id === v.chassi) || CATALOGO.chassi[0]).nome;
   const c = NEONS.find((x) => x.id === rascunho.cor) || NEONS[0];
-  $('resumo-ten').textContent = `${m.nome} · ${c.nome}`;
+  $('resumo-ten').textContent = `Chassi ${chassi} · ${c.nome}`;
 }
 
 function desenharLore() {
@@ -321,14 +414,18 @@ ui.onb.addEventListener('click', (e) => {
     document.querySelector('[data-scr=faccao] [data-go]').disabled = false;
     return;
   }
-  if (b.dataset.modelo) {
-    const item = `roupa:${b.dataset.modelo}`;
-    if (!temItem(carteira, item)) {
-      const m = ROUPAS.find((x) => x.id === b.dataset.modelo);
-      tentarComprar(item, m.nome).then((ok) => { if (ok) { rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); } });
-      return;
-    }
-    rascunho.modelo = b.dataset.modelo; marcarEscolhas(); desenharPreview(); return;
+  if (b.dataset.slot) {
+    abaPeca = b.dataset.slot;
+    montarPecas();
+    return;
+  }
+  if (b.dataset.peca) {
+    // peça ainda nao esta na tabela `loja` do servidor, entao nao ha compra a
+    // fazer aqui: todas aparecem liberadas ate a migracao rodar
+    visualDoRascunho()[b.dataset.peca] = b.dataset.valor;
+    montarPecas();
+    desenharPreview();
+    return;
   }
   if (b.dataset.cenario) {
     const item = `cenario:${b.dataset.cenario}`;
@@ -385,9 +482,12 @@ ui.onb.addEventListener('click', (e) => {
     if (modoEdicao) {
       perfil = { ...rascunho };
       salvarPerfil(perfil);
+      // O servidor ainda nao tem coluna para o visual novo: so modelo, cor e
+      // cenario atravessam. As peças da unidade ficam no aparelho ate a
+      // migracao rodar — e e por isso que a oficina avisa isso em tela.
       api.salvarVisual({ modelo: perfil.modelo, cor: perfil.cor, cenario: perfil.cenario });
       fecharOnboarding();
-      toast('Tênis atualizado.');
+      toast('Unidade atualizada.');
       return;
     }
     if (b.dataset.go === 'faccao') erro('cri-erro', '');
@@ -813,8 +913,6 @@ let ultimoVisual = null;
 // boneco diferente do seu.
 // Os tres modelos antigos viram conjuntos de peça equivalentes, para quem ja
 // tinha roupa comprada nao abrir o jogo e encontrar outra unidade.
-const PRESET_ANTIGO = { basico: 'batedor', corredor: 'corredor', jaqueta: 'bastiao' };
-
 function visualCru() {
   const salvo = perfil && perfil.visual;
   if (visualValido(salvo)) return salvo;
@@ -838,7 +936,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=42');
+    const mod = await import('./boneco3d.js?v=43');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
