@@ -2,21 +2,21 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=45';
+} from './geo.js?v=46';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=45';
-import * as api from './api.js?v=45';
+} from './player.js?v=46';
+import * as api from './api.js?v=46';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=45';
+} from './visual.js?v=46';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=45';
+} from './progresso.js?v=46';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -288,7 +288,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=45');
+    const mod = await import('./boneco3d.js?v=46');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -656,7 +656,11 @@ async function initMap() {
 
   map = new maplibregl.Map({
     container: 'map', style, center: CAMPO_GRANDE, zoom: 12.5,
-    // Girar com dois dedos fica LIGADO: é como se olha o resto da cidade.
+    // Arrastar o mapa fica DESLIGADO, como no Pokémon GO: a câmera é sua, mas
+    // o centro é sempre a sua unidade. Um dedo gira e inclina (ver `orbitar`),
+    // dois dedos aproximam. Sem isto dá para arrastar a tela para o outro lado
+    // da cidade e o jogo perde o pé.
+    dragPan: false,
     attributionControl: false, dragRotate: true, pitchWithRotate: true,
     // O afastamento máximo é amarrado ao raio de 500 m das latinhas: se desse
     // para afastar mais, as bordas do mapa ficariam vazias e pareceria defeito.
@@ -673,9 +677,13 @@ async function initMap() {
     }
   });
   map.touchZoomRotate.enableRotation();
-  map.on('dragstart', () => { followMe = false; $('btn-centro').hidden = false; });
-  // Girou a tela? O botão de centralizar aparece e também desgira.
-  map.on('rotatestart', () => { $('btn-centro').hidden = false; });
+  // O centro nunca solta da unidade, entao nao ha mais o que recentrar: o botao
+  // passa a servir para DESGIRAR, e so aparece quando a tela esta torta.
+  map.on('rotate', () => {
+    const torta = Math.abs(map.getBearing()) > 2;
+    $('btn-centro').hidden = !torta;
+  });
+  orbitar();
   map.on('error', (e) => {
     const msg = String((e && e.error && e.error.message) || '');
     if (msg) banner(`Problema no mapa: ${msg}`);
@@ -710,16 +718,46 @@ async function initMap() {
     // filtro e de uma camada a mais, que e mecanismo garantido.
     map.addLayer({
       id: 'latas-chao', type: 'fill', source: 'latas',
+      filter: ['==', ['geometry-type'], 'Polygon'],
       paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.14 },
     });
     map.addLayer({
       id: 'latas-borda', type: 'line', source: 'latas',
+      filter: ['==', ['geometry-type'], 'Polygon'],
       paint: { 'line-color': ['get', 'cor'], 'line-width': 2, 'line-opacity': 0.55 },
     });
     map.addLayer({
       id: 'latas-perto', type: 'line', source: 'latas',
-      filter: ['==', ['get', 'perto'], true],
+      filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'perto'], true]],
       paint: { 'line-color': ['get', 'cor'], 'line-width': 3, 'line-opacity': 0.95, 'line-blur': 1 },
+    });
+    // A lata em si tambem e camada do mapa, e nao um elemento solto por cima.
+    // Duas tentativas de ancorar um marcador de HTML falharam, e a razao de
+    // fundo e sempre a mesma: um elemento do DOM e posicionado DEPOIS, por
+    // cima do mapa ja desenhado, entao qualquer diferenca de arredondamento ou
+    // de ancoragem aparece como deslize. Como simbolo, a lata passa pela mesma
+    // matriz que a rua, no mesmo quadro — nao existe deslize possivel.
+    carregarIconesLata().then((ok) => {
+      if (!ok || map.getLayer('latas-icone')) return;
+      map.addLayer({
+        id: 'latas-icone', type: 'symbol', source: 'latas',
+        filter: ['==', ['geometry-type'], 'Point'],
+        layout: {
+          'icon-image': ['get', 'icone'],
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+          'icon-size': ['case', ['get', 'perto'], 0.62, 0.52],
+        },
+      });
+      map.on('click', 'latas-icone', (e) => {
+        const celula = e.features[0].properties.celula;
+        const s = spawns.find((x) => x.celula === celula);
+        if (s) pegarLatinha(s);
+      });
+      map.on('mouseenter', 'latas-icone', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'latas-icone', () => { map.getCanvas().style.cursor = ''; });
+      desenharLatinhas();
     });
 
     map.addSource('acc', { type: 'geojson', data: empty() });
@@ -888,6 +926,44 @@ const CAMERA = {
   zoomPadrao: 17.8,
 };
 
+// Um dedo gira e inclina a camera em volta da unidade, em vez de arrastar o
+// mapa. E assim que o Pokemon GO resolve: voce olha em volta sem nunca sair de
+// cima de si mesmo. Dois dedos continuam com o MapLibre (aproximar e girar).
+function orbitar() {
+  const palco = map.getCanvasContainer();
+  const dedos = new Map();
+  let base = null;
+
+  const comecar = (e) => {
+    dedos.set(e.pointerId, e);
+    if (dedos.size !== 1) { base = null; return; }
+    base = { x: e.clientX, y: e.clientY, bearing: map.getBearing(), pitch: map.getPitch() };
+  };
+  const mover = (e) => {
+    if (!dedos.has(e.pointerId)) return;
+    dedos.set(e.pointerId, e);
+    if (dedos.size !== 1 || !base) return;
+    const dx = e.clientX - base.x;
+    const dy = e.clientY - base.y;
+    if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+    map.setBearing(base.bearing - dx * 0.3);
+    // durante a rota o mapa fica reto de proposito, entao so gira
+    if (session.state === 'idle') {
+      map.setPitch(Math.max(0, Math.min(62, base.pitch + dy * 0.2)));
+    }
+  };
+  const soltar = (e) => {
+    dedos.delete(e.pointerId);
+    if (dedos.size === 0) base = null;
+  };
+
+  palco.addEventListener('pointerdown', comecar);
+  palco.addEventListener('pointermove', mover);
+  palco.addEventListener('pointerup', soltar);
+  palco.addEventListener('pointercancel', soltar);
+  palco.addEventListener('pointerleave', soltar);
+}
+
 function aplicarCamera({ animado = true } = {}) {
   if (!mapReady) return;
   const alvo = session.state === 'idle' ? CAMERA.pitchPasseio : CAMERA.pitchRota;
@@ -959,7 +1035,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=45');
+    const mod = await import('./boneco3d.js?v=46');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1079,13 +1155,36 @@ async function atualizarSpawns(forcar = false) {
   if (achou) { ultimaBuscaSpawn = 0; setTimeout(() => atualizarSpawns(true), 600); }
 }
 
+// Transforma o desenho da lata numa imagem que o MapLibre sabe usar como
+// simbolo. Precisa do xmlns, senao o navegador recusa o data URL do SVG.
+let iconesProntos = null;
+
+function carregarIconesLata() {
+  if (iconesProntos) return iconesProntos;
+  iconesProntos = Promise.all(Object.keys(LATINHAS).map((tipo) => new Promise((pronto) => {
+    const id = `lata-${tipo}`;
+    if (map.hasImage && map.hasImage(id)) { pronto(true); return; }
+    const svg = latinhaSVG({ tipo, tam: 96 })
+      .replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+    const img = new Image();
+    img.onload = () => {
+      try { map.addImage(id, img, { pixelRatio: 2 }); pronto(true); } catch { pronto(false); }
+    };
+    img.onerror = () => pronto(false);
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }))).then((r) => r.every(Boolean));
+  return iconesProntos;
+}
+
 // Raio do disco no chao, em metros. Nao e o raio de coleta (20 m): e so a
 // marca visual, e 5 m e mais ou menos a largura de uma calcada.
 const RAIO_CHAO_M = 5;
 
 function desenharLatinhas() {
+  const comIcone = mapReady && map.getLayer && map.getLayer('latas-icone');
   const vivas = new Set();
-  const chao = [];
+  const feicoes = [];
+
   for (const s of spawns) {
     vivas.add(s.celula);
     const dist = lastFix ? haversine(lastFix, s) : Infinity;
@@ -1093,9 +1192,17 @@ function desenharLatinhas() {
     const cor = (LATINHAS[s.tipo] || LATINHAS.lata).cor;
 
     const disco = circlePolygon({ lat: s.lat, lng: s.lng }, RAIO_CHAO_M, 24);
-    disco.properties = { cor, perto };
-    chao.push(disco);
+    disco.properties = { cor, perto, celula: s.celula };
+    feicoes.push(disco);
+    feicoes.push({
+      type: 'Feature',
+      properties: { cor, perto, celula: s.celula, icone: `lata-${s.tipo}` },
+      geometry: { type: 'Point', coordinates: [s.lng, s.lat] },
+    });
 
+    if (comIcone) continue;
+    // Reserva: se o simbolo nao subiu (imagem recusada, por exemplo), a lata
+    // ainda aparece como marcador de HTML, ancorada pelo pe.
     let m = marcasLata.get(s.celula);
     if (!m) {
       const el = document.createElement('div');
@@ -1103,11 +1210,6 @@ function desenharLatinhas() {
       el.style.setProperty('--c', cor);
       el.innerHTML = marcaLatinhaHTML(s.tipo, 42);
       el.onclick = () => pegarLatinha(s);
-      // anchor 'bottom' e o conserto: o padrao do MapLibre e 'center', entao o
-      // pe da lata ficava 34 px ABAIXO da coordenada. Offset constante em tela
-      // nao e offset constante no chao quando o mapa esta inclinado — perto do
-      // alto da tela 34 px valem muitos metros, embaixo valem poucos. Por isso
-      // a lata derivava sobre as ruas conforme a camera andava.
       m = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([s.lng, s.lat]).addTo(map);
       marcasLata.set(s.celula, m);
@@ -1115,11 +1217,13 @@ function desenharLatinhas() {
     m.getElement().classList.toggle('perto', perto);
     m.getElement().classList.toggle('lata-longe', !perto);
   }
+
   for (const [celula, m] of marcasLata) {
-    if (!vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
+    if (comIcone || !vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
   }
+
   const fonte = mapReady && map.getSource ? map.getSource('latas') : null;
-  if (fonte) fonte.setData({ type: 'FeatureCollection', features: chao });
+  if (fonte) fonte.setData({ type: 'FeatureCollection', features: feicoes });
 }
 
 async function pegarLatinha(s) {
@@ -1539,7 +1643,8 @@ function conferirMovimento(p) {
 function onFix(p) {
   lastFix = p;
   conferirMovimento(p);
-  if (mapReady && (firstFix || followMe)) {
+  // followMe nao desliga mais: arrastar o mapa nao existe
+  if (mapReady) {
     map.easeTo({ center: [p.lng, p.lat], zoom: firstFix ? CAMERA.zoomPadrao : map.getZoom(), duration: firstFix ? 0 : 600 });
   }
   firstFix = false;
