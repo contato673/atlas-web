@@ -537,12 +537,27 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   display: grid; place-items: end center;
 }
 .marca-lata .lata-sobe {
-  position: relative; line-height: 0;
+  position: relative; line-height: 0; margin-bottom: 11px;
   transition: filter .15s ease, opacity .15s ease;
   filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .55));
 }
 .marca-lata.perto .lata-sobe { filter: brightness(1.3) drop-shadow(0 0 7px var(--c)); }
 .marca-lata:active .lata-sobe { opacity: .7; }
+/* haste e pé: a pista de que a lata está fincada ali, e não pairando. Como o
+   marcador é ancorado por baixo, o pé cai exatamente na coordenada. */
+.marca-lata .lata-haste {
+  position: absolute; left: 50%; bottom: 3px; width: 1.5px; height: 11px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, var(--c), transparent);
+  opacity: .5;
+}
+.marca-lata .lata-pe {
+  position: absolute; left: 50%; bottom: 0; width: 7px; height: 7px;
+  transform: translateX(-50%);
+  border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 7px var(--c); opacity: .9;
+}
+.marca-lata.perto .lata-pe { width: 9px; height: 9px; box-shadow: 0 0 12px var(--c); }
 .lata-longe { opacity: .6; }
 
 /* ===================== avatar ===================== */

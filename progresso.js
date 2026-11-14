@@ -243,5 +243,11 @@ export function latinhaSVG({ tipo = 'lata', tam = 46 } = {}) {
 // no app.js), porque desenho de tela nao tomba com a inclinacao nem escala com
 // o zoom — e era isso que fazia a lata parecer solta sobre as ruas.
 export function marcaLatinhaHTML(tipo, tam = 46) {
-  return `<span class="lata-sobe">${latinhaSVG({ tipo, tam })}</span>`;
+  const cor = (LATINHAS[tipo] || LATINHAS.lata).cor;
+  // A haste e o ponto de contato sao a pista de que a lata esta fincada
+  // naquele lugar, e nao pairando sobre o mapa. Como o marcador e ancorado por
+  // baixo, a base do elemento cai exatamente na coordenada.
+  return `<span class="lata-sobe">${latinhaSVG({ tipo, tam })}</span>
+    <span class="lata-haste" style="--c:${cor}"></span>
+    <span class="lata-pe" style="--c:${cor}"></span>`;
 }

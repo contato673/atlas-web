@@ -2,21 +2,21 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=44';
+} from './geo.js?v=45';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=44';
-import * as api from './api.js?v=44';
+} from './player.js?v=45';
+import * as api from './api.js?v=45';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
-} from './visual.js?v=44';
+} from './visual.js?v=45';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=44';
+} from './progresso.js?v=45';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -288,7 +288,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=44');
+    const mod = await import('./boneco3d.js?v=45');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -703,13 +703,23 @@ async function initMap() {
     // tomba com a inclinacao e escala com o zoom exatamente como a linha da
     // quadra e da rua. Era isso que faltava para a lata parecer fincada.
     map.addSource('latas', { type: 'geojson', data: empty() });
+    // Opacidade aqui e CONSTANTE de proposito. `fill-color` e `line-color`
+    // aceitam expressao sem discussao (o territorio ja usa), mas opacidade
+    // orientada a dado nem sempre: se o MapLibre recusar, a camada simplesmente
+    // nao pinta e ninguem avisa. A diferenca entre longe e perto vem de um
+    // filtro e de uma camada a mais, que e mecanismo garantido.
     map.addLayer({
       id: 'latas-chao', type: 'fill', source: 'latas',
-      paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': ['get', 'fundo'] },
+      paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.14 },
     });
     map.addLayer({
       id: 'latas-borda', type: 'line', source: 'latas',
-      paint: { 'line-color': ['get', 'cor'], 'line-width': 2, 'line-opacity': ['get', 'forca'] },
+      paint: { 'line-color': ['get', 'cor'], 'line-width': 2, 'line-opacity': 0.55 },
+    });
+    map.addLayer({
+      id: 'latas-perto', type: 'line', source: 'latas',
+      filter: ['==', ['get', 'perto'], true],
+      paint: { 'line-color': ['get', 'cor'], 'line-width': 3, 'line-opacity': 0.95, 'line-blur': 1 },
     });
 
     map.addSource('acc', { type: 'geojson', data: empty() });
@@ -949,7 +959,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=44');
+    const mod = await import('./boneco3d.js?v=45');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1083,7 +1093,7 @@ function desenharLatinhas() {
     const cor = (LATINHAS[s.tipo] || LATINHAS.lata).cor;
 
     const disco = circlePolygon({ lat: s.lat, lng: s.lng }, RAIO_CHAO_M, 24);
-    disco.properties = { cor, forca: perto ? 0.95 : 0.45, fundo: perto ? 0.22 : 0.1 };
+    disco.properties = { cor, perto };
     chao.push(disco);
 
     let m = marcasLata.get(s.celula);
@@ -1108,9 +1118,8 @@ function desenharLatinhas() {
   for (const [celula, m] of marcasLata) {
     if (!vivas.has(celula)) { m.remove(); marcasLata.delete(celula); }
   }
-  if (mapReady && map.getSource('latas')) {
-    map.getSource('latas').setData({ type: 'FeatureCollection', features: chao });
-  }
+  const fonte = mapReady && map.getSource ? map.getSource('latas') : null;
+  if (fonte) fonte.setData({ type: 'FeatureCollection', features: chao });
 }
 
 async function pegarLatinha(s) {
