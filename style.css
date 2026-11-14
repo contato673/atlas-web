@@ -803,3 +803,25 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   content: ''; position: absolute; inset: -10px -100vw -16px; z-index: -1;
   background: linear-gradient(var(--bg) 0%, var(--bg) 76%, transparent 100%);
 }
+
+/* ===================== fila de cores com nome ===================== */
+/* Metade da paleta de blindagem é mais escura que o painel — grafite dá
+   contraste 1,2 contra o fundo. Sem anel e sem nome, o quadradinho existe,
+   tem a cor certa, e some. É exatamente o que acontecia. */
+.cores-nome { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cores-nome button {
+  padding: 7px 5px 6px; clip-path: none; border-radius: 10px;
+  display: grid; gap: 5px; justify-items: center;
+}
+.cores-nome button span {
+  width: 100%; aspect-ratio: 1.7; border-radius: 7px;
+  /* o anel claro é o que faz um quadradinho quase preto ainda ler como peça */
+  box-shadow: inset 0 0 0 1px #ffffff40, inset 0 7px 12px #ffffff14;
+}
+.cores-nome button i {
+  font-style: normal; font-size: 10px; letter-spacing: .02em;
+  color: var(--muted); line-height: 1.1;
+}
+.cores-nome button[aria-pressed=true] { border-color: var(--neon); }
+.cores-nome button[aria-pressed=true] i { color: var(--text); }
+.cores-nome button[aria-pressed=true] span { box-shadow: inset 0 0 0 1px #ffffff6b, 0 0 10px color-mix(in srgb, var(--neon) 45%, transparent); }

@@ -3,22 +3,22 @@
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
   territorioMaisPerto,
-} from './geo.js?v=55';
+} from './geo.js?v=56';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=55';
-import * as api from './api.js?v=55';
+} from './player.js?v=56';
+import * as api from './api.js?v=56';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=55';
+} from './visual.js?v=56';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=55';
-import * as mapaLatas from './mapalatas.js?v=55';
+} from './progresso.js?v=56';
+import * as mapaLatas from './mapalatas.js?v=56';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -264,6 +264,20 @@ function montarAbas() {
 // O inventário mostra o que é SEU, e não o que está vestido: comprar põe a
 // peça aqui, vestir é outro gesto. É também o único lugar onde dá para ver de
 // uma vez só tudo que o ouro já comprou.
+// A fila de cores com o NOME embaixo e um anel claro em volta do quadradinho.
+// Sem isso não adianta a cor estar certa: metade da paleta de blindagem é mais
+// escura que o painel (grafite dá contraste 1,2 contra o fundo), então o
+// quadradinho existe, tem a cor certa e simplesmente some. Cor escura em tela
+// escura só se lê com borda e com nome.
+function filaDeCores(paleta, chave, atual) {
+  return `<div class="opt-row cores-nome">${paleta.map((c) => {
+    const cor = c.cor || corDoPerfil(rascunho);
+    return `<button type="button" data-peca="${chave}" data-valor="${c.id}" `
+      + `aria-pressed="${atual === c.id}" aria-label="${c.nome}">`
+      + `<span style="background:${cor}"></span><i>${c.nome}</i></button>`;
+  }).join('')}</div>`;
+}
+
 function montarInventario(alvo, v) {
   const linhas = [];
   let tenho = 0;
@@ -298,9 +312,7 @@ function montarPecas() {
 
   if (abaPeca === 'placa') {
     alvo.innerHTML = '<span class="sub-tit">METAL DO CHASSI</span>'
-      + `<div class="opt-row cores">${PLACAS.map((t) =>
-        `<button type="button" data-peca="placa" data-valor="${t.id}" aria-pressed="${v.placa === t.id}" title="${t.nome}" aria-label="${t.nome}">`
-        + `<span style="background:${t.cor}"></span></button>`).join('')}</div>`;
+      + filaDeCores(PLACAS, 'placa', v.placa);
     return;
   }
 
@@ -319,13 +331,7 @@ function montarPecas() {
     + '</div>';
   if (slot.cores) {
     const chave = `${slot.id}Cor`;
-    // `cores` é o que dá tamanho ao quadradinho: sem a classe ele tem 0 px e
-    // o botão fica vazio, que foi o "bug de cor" que o Miguel viu.
-    html += '<span class="sub-tit">COR</span><div class="opt-row cores">'
-      + CORES_PECA.map((c) =>
-        `<button type="button" data-peca="${chave}" data-valor="${c.id}" aria-pressed="${v[chave] === c.id}" title="${c.nome}" aria-label="${c.nome}">`
-        + `<span style="background:${c.cor || corDoPerfil(rascunho)}"></span></button>`).join('')
-      + '</div>';
+    html += `<span class="sub-tit">COR</span>${filaDeCores(CORES_PECA, chave, v[chave])}`;
   }
   alvo.innerHTML = html;
 }
@@ -411,7 +417,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=55');
+    const mod = await import('./boneco3d.js?v=56');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -1381,7 +1387,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=55');
+    const mod = await import('./boneco3d.js?v=56');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
