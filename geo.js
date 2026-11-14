@@ -242,3 +242,51 @@ export class DetectorDeMovimento {
     };
   }
 }
+
+/* ===================== perto de um território ===================== */
+// Usadas para avisar o jogador quando ele chega perto de terreno inimigo.
+// Ficam aqui e não no app porque são geometria pura, e porque geometria pura
+// é a única coisa deste projeto que dá para testar sem navegador nenhum.
+
+// Raio-casting: conta quantas vezes uma linha saindo do ponto cruza o anel.
+// Ímpar = dentro. Funciona com o anel em [lng, lat], como vem do GeoJSON.
+export function dentroDoAnel(p, anel) {
+  let dentro = false;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i];
+    const [xj, yj] = anel[j];
+    const cruza = (yi > p.lat) !== (yj > p.lat)
+      && p.lng < ((xj - xi) * (p.lat - yi)) / (yj - yi) + xi;
+    if (cruza) dentro = !dentro;
+  }
+  return dentro;
+}
+
+// Distância até a borda do anel, em metros. Dentro ou fora, é sempre a borda:
+// quem chama decide o que fazer com o "dentro".
+export function distanciaAoAnel(p, anel, metro) {
+  let menor = Infinity;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const q = pertoNoSegmento(p, [anel[j][0], anel[j][1]], [anel[i][0], anel[i][1]]);
+    const d = metro(p, q);
+    if (d < menor) menor = d;
+  }
+  return menor;
+}
+
+// Percorre um FeatureCollection de polígonos e devolve o mais próximo que
+// passe no filtro. Só olha o anel de fora: buraco de polígono não muda a
+// resposta de "estou chegando perto?".
+export function territorioMaisPerto(p, colecao, passa, metro) {
+  let achado = null;
+  for (const f of (colecao && colecao.features) || []) {
+    if (!f.geometry || f.geometry.type !== 'Polygon') continue;
+    if (passa && !passa(f.properties || {})) continue;
+    const anel = f.geometry.coordinates[0];
+    if (!anel || anel.length < 4) continue;
+    const dentro = dentroDoAnel(p, anel);
+    const d = dentro ? 0 : distanciaAoAnel(p, anel, metro);
+    if (!achado || d < achado.distancia) achado = { feature: f, distancia: d, dentro };
+  }
+  return achado;
+}

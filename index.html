@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=53">
+  <link rel="stylesheet" href="style.css?v=54">
 </head>
 <body>
 
@@ -274,6 +274,14 @@
   <canvas id="boneco3d" hidden></canvas>
   <input id="camera" type="file" accept="image/*" capture="environment" hidden>
 
+  <!-- Aviso de terreno inimigo por perto. Fica acima do botão de rota, e só
+       aparece quando há de fato um perímetro de outra agência ao alcance. -->
+  <div id="inimigo" hidden>
+    <span class="inim-pulso"></span>
+    <span class="inim-txt" id="inimigo-txt"></span>
+    <span class="inim-carga" id="inimigo-carga"></span>
+  </div>
+
   <!-- Balão de primeira vez: explica a energia da rua. Some para sempre quando
        o jogador toca em ENTENDI. -->
   <div id="dica" hidden>
@@ -292,6 +300,6 @@
   <div id="toast" hidden><span id="toast-txt"></span><button id="toast-x" type="button" aria-label="Fechar">×</button></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=53"></script>
+  <script type="module" src="app.js?v=54"></script>
 </body>
 </html>

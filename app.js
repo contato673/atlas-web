@@ -2,22 +2,23 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=53';
+  territorioMaisPerto,
+} from './geo.js?v=54';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=53';
-import * as api from './api.js?v=53';
+} from './player.js?v=54';
+import * as api from './api.js?v=54';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=53';
+} from './visual.js?v=54';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=53';
-import * as mapaLatas from './mapalatas.js?v=53';
+} from './progresso.js?v=54';
+import * as mapaLatas from './mapalatas.js?v=54';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -408,7 +409,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=53');
+    const mod = await import('./boneco3d.js?v=54');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -1060,6 +1061,52 @@ function orbitar() {
   palco.addEventListener('pointerleave', soltar);
 }
 
+/* ===================== terreno inimigo por perto ===================== */
+// A briga já existia no jogo: terreno de outra agência é blindado, e só a
+// carga das cápsulas rompe. Mas ela era SILENCIOSA — o jogador fechava a rota
+// e descobria depois, numa tela de resultado. Isto dá cara ao momento, na hora
+// em que ele ainda pode decidir desviar ou ir em cima.
+const INIMIGO_ALCANCE_M = 160;
+let inimigoDentro = false;
+
+function conferirInimigo() {
+  const tarja = $('inimigo');
+  if (!tarja) return;
+  const minha = (perfil && perfil.faccao) || 'meridiano';
+  const achado = lastFix && territorios
+    ? territorioMaisPerto(lastFix, territorios, (p) => p.faccao && p.faccao !== minha, haversine)
+    : null;
+
+  if (!achado || achado.distancia > INIMIGO_ALCANCE_M) {
+    tarja.hidden = true;
+    inimigoDentro = false;
+    return;
+  }
+
+  const fac = FACCOES[achado.feature.properties.faccao] || FACCOES.meridiano;
+  const carga = (energia && energia.carga) || 0;
+  tarja.style.setProperty('--inim', fac.cor);
+  tarja.classList.toggle('dentro', achado.dentro);
+
+  $('inimigo-txt').innerHTML = achado.dentro
+    ? `Você está dentro de <b>${fac.nome}</b>`
+    : `<b>${fac.nome}</b> a ${Math.round(achado.distancia)} m`;
+
+  const marca = $('inimigo-carga');
+  marca.className = `inim-carga ${carga >= 1 ? 'tem' : 'falta'}`;
+  marca.textContent = carga >= 1 ? `⚡ ${carga} · ROMPE` : 'SEM CARGA';
+  tarja.hidden = false;
+
+  // Entrar em terreno inimigo é o momento: vibra uma vez, e só uma.
+  if (achado.dentro && !inimigoDentro) {
+    tremer(VIB.conquista);
+    toast(carga >= 1
+      ? `Blindagem de ${fac.nome} ao alcance. Feche o circuito por cima dela.`
+      : `Terreno de ${fac.nome}. Sem carga, você leva só o que estiver livre.`, 5000);
+  }
+  inimigoDentro = achado.dentro;
+}
+
 /* ===================== dicas de primeira vez ===================== */
 // Um balão com várias páginas: arrastar para o lado passa de uma instrução
 // para a outra, e as bolinhas mostram quantas são. Aparecem nas primeiras
@@ -1322,7 +1369,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=53');
+    const mod = await import('./boneco3d.js?v=54');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1526,6 +1573,7 @@ const MOTIVOS_LATA = {
 };
 
 function pintarEnergia() {
+  conferirInimigo();   // a tarja mostra a carga: mudou a carga, mudou a tarja
   const chip = $('energia');
   if (!energia) { chip.hidden = true; return; }
   const turboDePe = energia.turbo_ate && new Date(energia.turbo_ate) > new Date();
@@ -1733,6 +1781,7 @@ function replay(pontos) {
 async function atualizarMapa() {
   if (!api.temSessao()) return;
   territorios = await api.buscarMapa();
+  conferirInimigo();
   for (const f of (territorios.features || [])) {
     const d = f.properties.donos || [];
     f.properties.rotulo = Array.isArray(d) ? d.join(' · ') : String(d);
@@ -1907,6 +1956,7 @@ function conferirMovimento(p) {
 function onFix(p) {
   lastFix = p;
   conferirMovimento(p);
+  conferirInimigo();
   // followMe nao desliga mais: arrastar o mapa nao existe
   if (mapReady) {
     if (firstFix) {

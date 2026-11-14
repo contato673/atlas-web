@@ -759,3 +759,31 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 }
 .dica-bolinhas i.on { background: var(--neon, #22e3ff); width: 18px; border-radius: 3px; }
 .dica-caixa.indo { transition: transform .18s ease, opacity .18s ease; }
+
+/* ===================== terreno inimigo por perto ===================== */
+/* O jogo já tinha a briga: terreno de outra agência é blindado e só a carga
+   rompe. Mas ela era silenciosa — o jogador descobria depois de fechar a rota.
+   Esta tarja é o aviso que faltava, e a cor é a da agência dona do terreno. */
+#inimigo {
+  position: fixed; left: 12px; right: 12px; z-index: 30;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 13px; border-radius: 12px;
+  background: #0d1824ee; border: 1px solid var(--inim, #2f7bff);
+  box-shadow: 0 6px 22px #0008;
+  font-size: 12.5px; color: #d8e4f2;
+  animation: sobe .3s ease both;
+}
+#inimigo.dentro { box-shadow: 0 6px 22px #0008, 0 0 0 1px var(--inim, #2f7bff), 0 0 20px #0006; }
+.inim-pulso {
+  flex: none; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--inim, #2f7bff); box-shadow: 0 0 10px var(--inim, #2f7bff);
+  animation: pisca 1.5s ease-in-out infinite;
+}
+@keyframes pisca { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.inim-txt { flex: 1; }
+.inim-txt b { color: var(--inim, #2f7bff); }
+.inim-carga { flex: none; font-weight: 700; letter-spacing: .04em; }
+.inim-carga.tem { color: #c6ff3d; }
+.inim-carga.falta { color: #ff8a1f; }
+@media (prefers-reduced-motion: reduce) { .inim-pulso { animation: none; opacity: .9; } }
