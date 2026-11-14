@@ -2,22 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=49';
+} from './geo.js?v=50';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=49';
-import * as api from './api.js?v=49';
+} from './player.js?v=50';
+import * as api from './api.js?v=50';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=49';
+} from './visual.js?v=50';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=49';
-import * as mapaLatas from './mapalatas.js?v=49';
+} from './progresso.js?v=50';
+import * as mapaLatas from './mapalatas.js?v=50';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -179,6 +179,9 @@ function irPara(nome) {
 }
 
 function abrirOnboarding({ edicao = false, tela = null } = {}) {
+  // quem ainda nao tem conta nao espera GPS nenhum: a tela de carregando sai
+  // na hora, senao ela cobre o cadastro
+  sairDaTela();
   modoEdicao = edicao;
   rascunho = edicao ? { ...perfil } : perfilVazio();
   aplicarCores(rascunho);
@@ -298,7 +301,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=49');
+    const mod = await import('./boneco3d.js?v=50');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -570,12 +573,21 @@ function aviso() {
 }
 
 let toastTimer = null;
+function fecharToast() {
+  clearTimeout(toastTimer);
+  ui.toast.hidden = true;
+}
+
 function toast(msg, ms = 3500) {
-  ui.toast.textContent = msg;
+  // o texto vai no span, nao no proprio toast: senao o botao de fechar some
+  // junto na primeira mensagem
+  $('toast-txt').textContent = msg;
   ui.toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { ui.toast.hidden = true; }, ms);
+  toastTimer = setTimeout(fecharToast, ms);
 }
+
+if ($('toast-x')) $('toast-x').onclick = fecharToast;
 
 function banner(msg) {
   ui.banner.textContent = msg || '';
@@ -678,8 +690,10 @@ async function initMap() {
     // da cidade e o jogo perde o pé.
     dragPan: false,
     attributionControl: false, dragRotate: true, pitchWithRotate: true,
-    // O afastamento máximo é amarrado ao raio de 500 m das latinhas: se desse
-    // para afastar mais, as bordas do mapa ficariam vazias e pareceria defeito.
+    // O afastamento máximo nasceu amarrado ao raio de 500 m das latinhas: se
+    // desse para afastar mais, as bordas ficariam vazias e pareceria defeito.
+    // Com o alcance em 1500 m essa preocupação acabou — a vista enche antes da
+    // borda. O teto continua onde está porque ninguém pediu para mudar.
     minZoom: CAMERA.zoomMin, maxZoom: 19.5, pitch: 0, maxPitch: 62,
   });
   // Crédito do OpenStreetMap é obrigatório, mas fica recolhido num "i" de canto.
@@ -755,6 +769,10 @@ async function initMap() {
     map.on('mouseleave', 'terr-fill', () => { map.getCanvas().style.cursor = ''; });
 
     mapReady = true;
+    // ja nasce na inclinacao certa, em vez de inclinar na frente do jogador
+    aplicarCamera({ animado: false });
+    carregouMapa = true;
+    conferirCarregando();
     atualizarMarcador();
     drawAll();
     if (territorios) map.getSource('terr').setData(territorios);
@@ -891,8 +909,8 @@ async function pintarFotos(raiz) {
 const CAMERA = {
   pitchPasseio: 55,
   pitchRota: 0,
-  // Em Campo Grande, neste zoom a tela cobre pouco mais que o diâmetro do
-  // raio de 500 m em que o servidor entrega latinha.
+  // Em Campo Grande, neste zoom a tela cobre pouco mais que 1 km, dentro do
+  // alcance de 1500 m em que o servidor entrega latinha.
   zoomMin: 15.2,
   // Perto o bastante para o boneco ficar do tamanho de uma quadra.
   zoomPadrao: 17.8,
@@ -934,6 +952,60 @@ function orbitar() {
   palco.addEventListener('pointerup', soltar);
   palco.addEventListener('pointercancel', soltar);
   palco.addEventListener('pointerleave', soltar);
+}
+
+/* ===================== tela de carregando ===================== */
+// Sai quando o mapa esta pronto E a camera ja esta em cima do jogador. Se o
+// GPS demorar, aparece o botao de entrar assim mesmo: ninguem pode ficar preso
+// aqui por causa de um sinal ruim.
+let carregouMapa = false;
+let carregouLugar = false;
+let telaFoi = false;
+let relogioCarregar = 0;
+
+function pintarCarregando() {
+  const alvo = $('carr-logo');
+  if (alvo && !alvo.childElementCount) {
+    alvo.innerHTML = logoSVG({
+      largura: 130, cor: corDoPerfil(perfil), faccao: (perfil && perfil.faccao) || 'meridiano', brilho: 3,
+    });
+  }
+  const pes = $('carr-pegadas');
+  if (pes && !pes.childElementCount) pes.innerHTML = '<i></i>'.repeat(6);
+}
+
+function dizerCarregando(txt) {
+  const p = $('carr-txt');
+  if (p) p.textContent = txt;
+}
+
+function sairDaTela() {
+  if (telaFoi) return;
+  telaFoi = true;
+  clearTimeout(relogioCarregar);
+  const tela = $('carregando');
+  if (!tela) return;
+  tela.classList.add('saiu');
+  setTimeout(() => { tela.hidden = true; }, 500);
+}
+
+function conferirCarregando() {
+  if (carregouMapa && carregouLugar) sairDaTela();
+}
+
+function ligarCarregando() {
+  pintarCarregando();
+  // 7 s: tempo de o mapa abrir e o GPS responder. Passou disso, o jogador
+  // decide se espera ou entra.
+  relogioCarregar = setTimeout(() => {
+    if (telaFoi) return;
+    dizerCarregando(carregouMapa ? 'Procurando o seu sinal…' : 'Abrindo o mapa…');
+    const b = $('carr-pular');
+    if (b) {
+      b.hidden = false;
+      b.onclick = sairDaTela;
+    }
+  }, 7000);
 }
 
 function aplicarCamera({ animado = true } = {}) {
@@ -1007,7 +1079,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=49');
+    const mod = await import('./boneco3d.js?v=50');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
@@ -1101,6 +1173,11 @@ function ruaNaCelula(caixa) {
   return melhor;
 }
 
+// A caixa da célula vem do servidor como [latMin, lngMin, latMax, lngMax].
+const meioDaCaixa = (caixa) => (Array.isArray(caixa) && caixa.length === 4
+  ? { lat: (caixa[0] + caixa[2]) / 2, lng: (caixa[1] + caixa[3]) / 2 }
+  : null);
+
 async function atualizarSpawns(forcar = false) {
   if (!lastFix || !api.temSessao() || !mapReady) return;
   const agora = Date.now();
@@ -1115,8 +1192,18 @@ async function atualizarSpawns(forcar = false) {
   spawns = (r.spawns || []).filter((s) => s.tem_ponto);
   desenharLatinhas();
 
-  // células vivas que ainda não têm rua escolhida: o app propõe uma
-  const semPonto = (r.spawns || []).filter((s) => !s.tem_ponto).slice(0, 6);
+  // Células vivas que ainda não têm rua escolhida: o app propõe uma, usando a
+  // malha viária que o próprio mapa já baixou. Com o alcance em 1500 m isto
+  // passou a importar muito mais — célula distante nunca foi visitada, então
+  // a maioria chega sem ponto e não apareceria. Começa pelas mais perto, que
+  // são as que o jogador vai alcançar primeiro e as que têm tile carregado.
+  const semPonto = (r.spawns || [])
+    .filter((s) => !s.tem_ponto)
+    .map((s) => ({ s, d: meioDaCaixa(s.caixa) }))
+    .filter((x) => x.d)
+    .sort((x, y) => haversine(lastFix, x.d) - haversine(lastFix, y.d))
+    .slice(0, 14)
+    .map((x) => x.s);
   let achou = false;
   for (const s of semPonto) {
     const q = ruaNaCelula(s.caixa);
@@ -1577,7 +1664,14 @@ function onFix(p) {
   conferirMovimento(p);
   // followMe nao desliga mais: arrastar o mapa nao existe
   if (mapReady) {
-    map.easeTo({ center: [p.lng, p.lat], zoom: firstFix ? CAMERA.zoomPadrao : map.getZoom(), duration: firstFix ? 0 : 600 });
+    if (firstFix) {
+      // a primeira vez e salto, nao viagem: a tela de carregando esta por cima
+      map.jumpTo({ center: [p.lng, p.lat], zoom: CAMERA.zoomPadrao });
+      carregouLugar = true;
+      conferirCarregando();
+    } else {
+      map.easeTo({ center: [p.lng, p.lat], zoom: map.getZoom(), duration: 600 });
+    }
   }
   firstFix = false;
 
@@ -1876,6 +1970,7 @@ if (session.state !== 'idle') {
   keepScreenOn();
   document.addEventListener('pointerdown', keepScreenOn, { once: true });
 }
+ligarCarregando();
 render();
 initMap();
 startGps();

@@ -291,14 +291,16 @@ export function montarCorpo(v) {
     const cotovelo = new THREE.Group();
     cotovelo.position.y = -0.56;
     cotovelo.add(junta(r * 1.05, 0.14));
-    const antebraco = cone(r * 0.94, r * 0.8, 0.44, mPeitoral, 8);
-    antebraco.position.y = -0.26;
+    // Antebraço e mão um pouco maiores: antes a mão era um cubinho que sumia,
+    // e o braço inteiro lia como curto demais para o tamanho do tronco.
+    const antebraco = cone(r * 0.94, r * 0.82, 0.52, mPeitoral, 8);
+    antebraco.position.y = -0.3;
     const bracelete = junta(r * 1.02, 0.09, mNeon);
-    bracelete.position.y = -0.46;
-    const mao = caixa(r * 1.7, r * 1.9, r * 1.3, mPlaca);
-    mao.position.y = -0.6;
-    const dedo = caixa(r * 0.5, r * 0.8, r * 0.5, mPlaca);
-    dedo.position.set(lado * r * 0.6, -0.74, 0);
+    bracelete.position.y = -0.54;
+    const mao = caixa(r * 2.1, r * 2.3, r * 1.5, mPlaca);
+    mao.position.y = -0.7;
+    const dedo = caixa(r * 0.62, r * 1.0, r * 0.6, mPlaca);
+    dedo.position.set(lado * r * 0.78, -0.86, 0);
     cotovelo.add(antebraco, bracelete, mao, dedo);
     raiz.add(cotovelo);
 

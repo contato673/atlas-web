@@ -14,9 +14,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.css">
-  <link rel="stylesheet" href="style.css?v=49">
+  <link rel="stylesheet" href="style.css?v=50">
 </head>
 <body>
+
+  <!-- ===================== CARREGANDO ===================== -->
+  <!-- Fica por cima desde o primeiro quadro: sem ela o jogador vê o mapa
+       nascer no centro da cidade, reto, inclinar e só então viajar até ele. -->
+  <div id="carregando">
+    <div class="carr-logo" id="carr-logo"></div>
+    <div class="carr-pegadas" id="carr-pegadas"></div>
+    <p class="carr-txt" id="carr-txt">Acordando a unidade…</p>
+    <button class="carr-pular" id="carr-pular" type="button" hidden>ENTRAR ASSIM MESMO</button>
+  </div>
 
   <!-- ===================== MAPA ===================== -->
   <div id="map"></div>
@@ -264,9 +274,9 @@
   <canvas id="boneco3d" hidden></canvas>
   <input id="camera" type="file" accept="image/*" capture="environment" hidden>
 
-  <div id="toast" hidden></div>
+  <div id="toast" hidden><span id="toast-txt"></span><button id="toast-x" type="button" aria-label="Fechar">×</button></div>
 
   <script src="https://unpkg.com/maplibre-gl@^4.3/dist/maplibre-gl.js"></script>
-  <script type="module" src="app.js?v=49"></script>
+  <script type="module" src="app.js?v=50"></script>
 </body>
 </html>

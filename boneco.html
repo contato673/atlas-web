@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ATLAS — Oficina</title>
-<link rel="stylesheet" href="style.css?v=49">
+<link rel="stylesheet" href="style.css?v=50">
 <style>
   body { margin: 0; }
   .vest { min-height: 100dvh; display: flex; flex-direction: column; background:
@@ -28,7 +28,8 @@
   .op[aria-pressed="true"] { border-color: #22e3ff; color: #eaf6ff; box-shadow: inset 0 0 0 1px #22e3ff44; }
   .bola { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
   .abas { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px;
-    scrollbar-width: none; }
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, #000 86%, transparent 100%); }
   .abas::-webkit-scrollbar { display: none; }
   .op.aba { white-space: nowrap; padding: 7px 12px; font-size: 12px; }
   #prateleira h2 { margin: 2px 0 7px; font-size: 11px; letter-spacing: .18em;
@@ -57,12 +58,12 @@
 </div>
 
 <script type="module">
-import { criarBoneco } from './boneco3d.js?v=49';
-import { NEONS } from './player.js?v=49';
+import { criarBoneco } from './boneco3d.js?v=50';
+import { NEONS } from './player.js?v=50';
 import {
   SLOTS, CATALOGO, PLACAS, CORES_PECA,
   VISUAL_PADRAO, resolverVisual, mudouDePeca, precoDaPeca,
-} from './visual.js?v=49';
+} from './visual.js?v=50';
 
 const PALETAS = { peca: CORES_PECA };
 const CHAVE = 'atlas.oficina.v1';
@@ -113,23 +114,23 @@ function botao({ rotulo, cor, ativo, preco, aoClicar }) {
   return b;
 }
 
+// Metal e Neon primeiro: são os dois que mudam a unidade inteira de uma vez, e
+// a fila rola para o lado — o que fica no fim ninguém acha.
+const abasDaTela = () => [
+  ['placa', 'Metal'], ['neon', 'Neon'], ...SLOTS.map((s) => [s.id, s.nome]),
+];
+
 function desenhar() {
   const abas = $('abas');
   abas.textContent = '';
-  for (const s of SLOTS) {
+  for (const [id, nome] of abasDaTela()) {
     const b = botao({
-      rotulo: s.nome, ativo: aba === s.id,
-      aoClicar: () => { aba = s.id; desenhar(); },
+      rotulo: nome, ativo: aba === id,
+      aoClicar: () => { aba = id; desenhar(); },
     });
     b.classList.add('aba');
     abas.appendChild(b);
   }
-  const nAba = botao({ rotulo: 'Neon', ativo: aba === 'neon', aoClicar: () => { aba = 'neon'; desenhar(); } });
-  nAba.classList.add('aba');
-  abas.appendChild(nAba);
-  const pAba = botao({ rotulo: 'Placa', ativo: aba === 'placa', aoClicar: () => { aba = 'placa'; desenhar(); } });
-  pAba.classList.add('aba');
-  abas.appendChild(pAba);
 
   const p = $('prateleira');
   p.textContent = '';

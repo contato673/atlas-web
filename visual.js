@@ -84,11 +84,14 @@ export const CATALOGO = {
 };
 
 // Ordem em que as abas aparecem no vestiário.
+// A ordem é a da aba na tela. Visor e Elmo vêm cedo de propósito: são o que
+// mais muda a cara da unidade, e a fila rola para o lado — o que fica no fim
+// o jogador não acha.
 export const SLOTS = [
   { id: 'chassi', nome: 'Chassi', cores: null },
-  { id: 'cabeca', nome: 'Cabeça', cores: 'peca' },
   { id: 'visor', nome: 'Visor', cores: null },
   { id: 'elmo', nome: 'Elmo', cores: 'peca' },
+  { id: 'cabeca', nome: 'Cabeça', cores: 'peca' },
   { id: 'peitoral', nome: 'Peitoral', cores: 'peca' },
   { id: 'couraca', nome: 'Couraça', cores: 'peca' },
   { id: 'pernas', nome: 'Pernas', cores: 'peca' },
