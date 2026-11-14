@@ -709,7 +709,8 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
 }
 .dica-caixa {
   position: relative; display: flex; gap: 12px; align-items: flex-start;
-  padding: 14px 40px 14px 14px; border-radius: 16px;
+  padding: 14px 40px 26px 14px; border-radius: 16px;
+  touch-action: pan-y;
   background: #0d1824f2; border: 1px solid var(--neon, #22e3ff);
   box-shadow: 0 10px 34px #000a, inset 0 0 0 1px #ffffff0a;
 }
@@ -732,3 +733,29 @@ h1, h2, .brand, .btn, .num { font-family: Orbitron, Rajdhani, sans-serif; }
   color: #cfdcec; font: inherit; font-size: 16px; line-height: 1; opacity: .8;
 }
 .dica-ok { width: 100%; }
+
+/* peça em prova: vestida na unidade, mas ainda não comprada */
+#row-pecas .provando {
+  border-color: var(--neon, #22e3ff);
+  box-shadow: inset 0 0 0 1px var(--neon, #22e3ff), 0 0 14px #22e3ff33;
+}
+#row-pecas .provando i { color: var(--neon, #22e3ff); }
+.inv-topo {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin: 0 0 10px; font-size: 12px; color: #8fa6c4;
+}
+.inv-topo b { color: #e8f1ff; font-size: 14px; }
+.inv-topo span { margin-left: auto; color: #ffcb57; }
+
+/* As bolinhas: quantas instruções existem e em qual você está. Arrastar a
+   caixa para o lado passa de uma para a outra. */
+.dica-bolinhas {
+  position: absolute; left: 0; right: 0; bottom: 9px;
+  display: flex; justify-content: center; gap: 7px;
+}
+.dica-bolinhas i {
+  display: block; width: 6px; height: 6px; border-radius: 50%;
+  background: #ffffff33; transition: background .2s, width .2s;
+}
+.dica-bolinhas i.on { background: var(--neon, #22e3ff); width: 18px; border-radius: 3px; }
+.dica-caixa.indo { transition: transform .18s ease, opacity .18s ease; }

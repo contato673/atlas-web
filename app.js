@@ -2,22 +2,22 @@
 // Ainda NÃO existe servidor: perfil e rotas ficam apenas neste aparelho.
 import {
   CONFIG, RouteSession, circlePolygon, haversine, pertoNoSegmento, DetectorDeMovimento,
-} from './geo.js?v=52';
+} from './geo.js?v=53';
 import {
   FACCOES, NEONS, avatarSVG, carregarPerfil, salvarPerfil, perfilVazio, corDoPerfil,
   logoSVG,
   GRATIS, PRECOS, temItem, precoDe, fmtOuro, CENARIOS, cenarioSVG,
-} from './player.js?v=52';
-import * as api from './api.js?v=52';
+} from './player.js?v=53';
+import * as api from './api.js?v=53';
 import {
   resolverVisual, PRESETS, VISUAL_PADRAO, visualValido, mudouDePeca,
   SLOTS, CATALOGO, PLACAS, CORES_PECA, precoDaPeca, itemDaPeca,
-} from './visual.js?v=52';
+} from './visual.js?v=53';
 import {
   anelNivel, medalhaSVG, cartaoConquista, compartilhar, tremer, VIB,
   latinhaSVG, marcaLatinhaHTML, LATINHAS,
-} from './progresso.js?v=52';
-import * as mapaLatas from './mapalatas.js?v=52';
+} from './progresso.js?v=53';
+import * as mapaLatas from './mapalatas.js?v=53';
 
 const CAMPO_GRANDE = [-54.6201, -20.4697];
 const SESSION_KEY = 'atlas.session.v1';
@@ -255,15 +255,45 @@ function visualDoRascunho() {
 }
 
 function montarAbas() {
-  const abas = [...SLOTS.map((s) => [s.id, s.nome]), ['placa', 'Metal']];
+  const abas = [['inv', 'Inventário'], ['placa', 'Metal'], ...SLOTS.map((s) => [s.id, s.nome])];
   $('row-abas').innerHTML = abas.map(([id, nome]) =>
     `<button type="button" data-slot="${id}" aria-pressed="${abaPeca === id}">${nome}</button>`).join('');
+}
+
+// O inventário mostra o que é SEU, e não o que está vestido: comprar põe a
+// peça aqui, vestir é outro gesto. É também o único lugar onde dá para ver de
+// uma vez só tudo que o ouro já comprou.
+function montarInventario(alvo, v) {
+  const linhas = [];
+  let tenho = 0;
+  let pagas = 0;
+
+  for (const s of SLOTS) {
+    const minhas = CATALOGO[s.id].filter((it) => pecaMinha(s.id, it.id));
+    tenho += minhas.length;
+    pagas += minhas.filter((it) => it.custo > 0).length;
+    linhas.push(`<span class="sub-tit">${s.nome.toUpperCase()}</span>`
+      + '<div class="opt-row">'
+      + minhas.map((it) => {
+        const vestida = v[s.id] === it.id;
+        return `<button type="button" data-peca="${s.id}" data-valor="${it.id}" `
+          + `aria-pressed="${vestida}"><b>${it.nome}</b>`
+          + `<i>${vestida ? 'vestida' : (it.custo ? 'comprada' : 'de série')}</i></button>`;
+      }).join('')
+      + '</div>');
+  }
+
+  const ouro = carteira ? fmtOuro(carteira.ouro) : '—';
+  alvo.innerHTML = `<div class="inv-topo"><b>${tenho}</b> peças · <b>${pagas}</b> compradas`
+    + `<span>${ouro} de ouro</span></div>` + linhas.join('');
 }
 
 function montarPecas() {
   montarAbas();
   const v = visualDoRascunho();
   const alvo = $('row-pecas');
+
+  if (abaPeca === 'inv') { montarInventario(alvo, v); return; }
 
   if (abaPeca === 'placa') {
     alvo.innerHTML = '<span class="sub-tit">METAL DO CHASSI</span>'
@@ -277,9 +307,13 @@ function montarPecas() {
   let html = '<span class="sub-tit">MODELO</span><div class="opt-row">'
     + CATALOGO[slot.id].map((it) => {
       const meu = pecaMinha(slot.id, it.id);
+      const vestida = v[slot.id] === it.id;
+      // "provando" é vestida sem ser sua: a peça aparece na unidade, mas a
+      // tela deixa claro que ela ainda não foi levada
+      const classe = meu ? '' : (vestida ? 'provando' : 'travado');
       return `<button type="button" data-peca="${slot.id}" data-valor="${it.id}" `
-        + `class="${meu ? '' : 'travado'}" aria-pressed="${v[slot.id] === it.id}">`
-        + `<b>${it.nome}</b>${meu ? '' : `<i>${fmtOuro(precoDaPeca(slot.id, it.id))} ouro</i>`}</button>`;
+        + `class="${classe}" aria-pressed="${vestida}">`
+        + `<b>${it.nome}</b>${meu ? '' : `<i>${vestida ? 'provando · ' : ''}${fmtOuro(precoDaPeca(slot.id, it.id))} ouro</i>`}</button>`;
     }).join('')
     + '</div>';
   if (slot.cores) {
@@ -293,6 +327,77 @@ function montarPecas() {
   alvo.innerHTML = html;
 }
 
+// As peças que a unidade está vestindo e o jogador ainda não tem. É isto que
+// a tela de salvar precisa resolver.
+function emProva() {
+  const v = visualDoRascunho();
+  const fora = [];
+  for (const s of SLOTS) {
+    const id = v[s.id];
+    if (!id || pecaMinha(s.id, id)) continue;
+    const item = CATALOGO[s.id].find((x) => x.id === id);
+    fora.push({
+      slot: s.id, id, nome: `${s.nome}: ${item ? item.nome : id}`,
+      custo: precoDaPeca(s.id, id), item: itemDaPeca(s.id, id),
+    });
+  }
+  return fora;
+}
+
+// Compra tudo que está em prova. Devolve true só se deu para levar tudo.
+async function comprarAProva() {
+  const fora = emProva();
+  if (!fora.length) return true;
+  const total = fora.reduce((s, p) => s + p.custo, 0);
+  const ouro = (carteira && carteira.ouro) || 0;
+
+  if (!carteira) { toast('A loja ainda não está ligada no servidor.'); return false; }
+  if (ouro < total) {
+    const sim = await ask({
+      title: 'Falta ouro para levar',
+      text: `Essas peças custam ${fmtOuro(total)} e você tem ${fmtOuro(ouro)}.\n\n`
+        + `${fora.map((p) => `${p.nome} — ${fmtOuro(p.custo)}`).join('\n')}\n\n`
+        + 'Conquiste mais território, ou tire as peças para salvar o resto.',
+      ok: 'TIRAR AS PEÇAS', cancel: 'CONTINUAR PROVANDO',
+    });
+    if (sim) { tirarAProva(); return true; }
+    return false;
+  }
+
+  const sim = await ask({
+    title: fora.length > 1 ? `Levar ${fora.length} peças?` : 'Levar esta peça?',
+    text: `${fora.map((p) => `${p.nome} — ${fmtOuro(p.custo)}`).join('\n')}\n\n`
+      + `Você tem ${fmtOuro(ouro)} de ouro.`,
+    numeros: [[fmtOuro(total), 'ouro'], [fmtOuro(ouro - total), 'depois']],
+    ok: 'COMPRAR E SALVAR', cancel: 'AGORA NÃO',
+  });
+  if (!sim) return false;
+
+  for (const p of fora) {
+    const r = await api.comprarItem(p.item);
+    if (!r || !r.ok) {
+      toast(r && r.motivo === 'sem_ouro' ? 'Ouro insuficiente.' : `Não deu para comprar ${p.nome}.`, 4500);
+      carteira = await api.buscarCarteira();
+      montarPecas();
+      return false;
+    }
+  }
+  carteira = await api.buscarCarteira();
+  montarPecas();
+  toast(fora.length > 1 ? `${fora.length} peças foram para o seu inventário.` : 'Peça no seu inventário.');
+  return true;
+}
+
+function tirarAProva() {
+  const v = visualDoRascunho();
+  for (const p of emProva()) {
+    const livre = CATALOGO[p.slot].find((x) => !x.custo);
+    v[p.slot] = livre ? livre.id : VISUAL_PADRAO[p.slot];
+  }
+  montarPecas();
+  desenharPreview();
+}
+
 /* ---- o preview em 3D, a mesma unidade que anda no mapa ---- */
 let preview3d = null;
 let lacoPreview = 0;
@@ -303,7 +408,7 @@ async function ligarPreview3d() {
   const tela = $('preview3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=52');
+    const mod = await import('./boneco3d.js?v=53');
     preview3d = await mod.criarBoneco(tela, resolverVisual(visualDoRascunho(), corDoPerfil(rascunho)));
     tela.hidden = false;
     $('preview').hidden = true;
@@ -418,7 +523,9 @@ async function concluir() {
 }
 
 // navegação e escolhas
-ui.onb.addEventListener('click', (e) => {
+// async porque SALVAR passa pela loja antes de gravar: provar é de graça,
+// levar não.
+ui.onb.addEventListener('click', async (e) => {
   const b = e.target.closest('button');
   if (!b) return;
 
@@ -435,17 +542,12 @@ ui.onb.addEventListener('click', (e) => {
     return;
   }
   if (b.dataset.peca) {
-    const slot = b.dataset.peca;
-    const valor = b.dataset.valor;
-    const vestir = () => {
-      visualDoRascunho()[slot] = valor;
-      montarPecas();
-      desenharPreview();
-    };
-    // cor de peça não tem preço; peça paga passa pela loja antes
-    if (slot.endsWith('Cor') || slot === 'placa' || pecaMinha(slot, valor)) { vestir(); return; }
-    const item = CATALOGO[slot].find((x) => x.id === valor);
-    tentarComprar(itemDaPeca(slot, valor), item ? item.nome : valor).then((ok) => { if (ok) vestir(); });
+    // Vestir é de graça: a peça entra na unidade na hora, comprada ou não.
+    // A loja só aparece na hora de SALVAR. Experimentar antes de pagar é o
+    // mínimo — ninguém compra uma peça de 900 de ouro sem ver no corpo.
+    visualDoRascunho()[b.dataset.peca] = b.dataset.valor;
+    montarPecas();
+    desenharPreview();
     return;
   }
   if (b.dataset.cenario) {
@@ -501,6 +603,8 @@ ui.onb.addEventListener('click', (e) => {
   }
   if (b.dataset.go) {
     if (modoEdicao) {
+      // Provar é de graça, levar não: aqui é onde a loja aparece.
+      if (!(await comprarAProva())) return;
       perfil = { ...rascunho };
       salvarPerfil(perfil);
       api.salvarVisual({
@@ -957,10 +1061,48 @@ function orbitar() {
 }
 
 /* ===================== dicas de primeira vez ===================== */
-// Aparecem nas primeiras entradas e somem para sempre quando o jogador diz que
-// entendeu. Contar entradas em vez de mostrar uma vez só é de propósito: na
-// primeira vez a pessoa está ocupada entendendo o mapa e não lê nada.
+// Um balão com várias páginas: arrastar para o lado passa de uma instrução
+// para a outra, e as bolinhas mostram quantas são. Aparecem nas primeiras
+// entradas e somem para sempre quando o jogador diz que entendeu.
+//
+// Cada página só fala de regra que já existe no jogo. Instrução que ensina
+// coisa que o código não faz é pior do que instrução nenhuma.
 const DICAS_KEY = 'atlas.dicas.v1';
+const DICA_VEZES = 3;
+
+function paginasDeDica() {
+  const min = faltaParaTrocar();
+  const quando = min
+    ? `As próximas trocam em <em>${min} min</em>.`
+    : 'Elas trocam a cada <em>20 minutos</em>.';
+  return [
+    {
+      titulo: 'ENERGIA NA RUA',
+      arte: () => latinhaSVG({ tipo: 'lata', tam: 46 }),
+      corpo: 'Essas cápsulas são a carga que sobrou da rede, aflorando pelos ramais '
+        + 'debaixo das ruas. Chegue a <em>20 m</em> de uma para recolher.<br>'
+        + `${quando} O ponto seca e o resíduo brota em outro lugar — então vale sair andando.`,
+    },
+    {
+      titulo: 'FECHAR O CIRCUITO',
+      arte: () => logoSVG({ largura: 46, cor: corDoPerfil(perfil), faccao: (perfil && perfil.faccao) || 'meridiano' }),
+      corpo: 'Território não se reivindica: a sua unidade o <em>drena</em>, e só consegue '
+        + 'quando o perímetro fecha a pé.<br>'
+        + `Afaste-se pelo menos <em>${CONFIG.LEAVE_RADIUS_M} m</em> do ponto de partida e volte até ele. `
+        + `Acima de <em>${CONFIG.MAX_SPEED_KMH} km/h</em> a antena perde a trava e o trecho não entra na conta.`,
+    },
+    {
+      titulo: 'MUNIÇÃO',
+      arte: () => latinhaSVG({ tipo: 'latao', tam: 46 }),
+      corpo: 'Terreno de outra agência vem blindado. A <em>carga</em> das cápsulas é o que '
+        + 'rompe essa blindagem.<br>'
+        + 'Sem carga a rota vale do mesmo jeito — você só leva o terreno que estava livre.',
+    },
+  ];
+}
+
+let dicaPag = 0;
+let dicaPaginas = [];
 
 function dicasVistas() {
   try { return JSON.parse(localStorage.getItem(DICAS_KEY)) || {}; } catch { return {}; }
@@ -974,34 +1116,72 @@ function fecharDica({ paraSempre = false } = {}) {
   const el = $('dica');
   if (!el) return;
   el.hidden = true;
-  if (paraSempre && el.dataset.id) {
+  if (paraSempre) {
     const d = dicasVistas();
-    d[el.dataset.id] = 'ok';
+    d.vistas = 'ok';
     guardarDicas(d);
   }
 }
 
-// `vezes` é quantas entradas ela ainda aparece se o jogador nunca confirmar.
-function mostrarDica({ id, titulo, corpo, arte, vezes = 3 }) {
+function pintarDica() {
+  const p = dicaPaginas[dicaPag];
+  if (!p) return;
+  $('dica-tit').textContent = p.titulo;
+  $('dica-corpo').innerHTML = p.corpo;
+  $('dica-arte').innerHTML = p.arte ? p.arte() : '';
+  $('dica-bolinhas').innerHTML = dicaPaginas
+    .map((_, i) => `<i class="${i === dicaPag ? 'on' : ''}"></i>`).join('');
+  $('dica-ok').textContent = dicaPag < dicaPaginas.length - 1 ? 'PRÓXIMA' : 'ENTENDI';
+}
+
+function irParaDica(i) {
+  dicaPag = Math.max(0, Math.min(dicaPaginas.length - 1, i));
+  pintarDica();
+}
+
+function mostrarDicas() {
   const el = $('dica');
-  if (!el || !ui.onb.hidden) return false;
+  if (!el || !ui.onb.hidden) return;
   const d = dicasVistas();
-  if (d[id] === 'ok') return false;
-  const jaVi = Number(d[id]) || 0;
-  if (jaVi >= vezes) return false;
-  d[id] = jaVi + 1;
+  if (d.vistas === 'ok') return;
+  // Contar entradas em vez de mostrar uma vez só é de propósito: na primeira
+  // vez a pessoa está ocupada entendendo o mapa e não lê nada.
+  const jaVi = Number(d.vistas) || 0;
+  if (jaVi >= DICA_VEZES) return;
+  d.vistas = jaVi + 1;
   guardarDicas(d);
 
-  el.dataset.id = id;
-  $('dica-tit').textContent = titulo;
-  $('dica-corpo').innerHTML = corpo;
-  $('dica-arte').innerHTML = arte || '';
+  dicaPaginas = paginasDeDica();
+  dicaPag = 0;
+  pintarDica();
   el.hidden = false;
-  return true;
 }
 
 if ($('dica-x')) $('dica-x').onclick = () => fecharDica();
-if ($('dica-ok')) $('dica-ok').onclick = () => fecharDica({ paraSempre: true });
+if ($('dica-ok')) {
+  $('dica-ok').onclick = () => {
+    if (dicaPag < dicaPaginas.length - 1) irParaDica(dicaPag + 1);
+    else fecharDica({ paraSempre: true });
+  };
+}
+
+// Arrastar para o lado troca de página. Só conta se o gesto for mais
+// horizontal que vertical, senão rolar a tela viraria troca de instrução.
+if ($('dica-caixa')) {
+  const caixa = $('dica-caixa');
+  let x0 = null;
+  let y0 = 0;
+  caixa.addEventListener('pointerdown', (e) => { x0 = e.clientX; y0 = e.clientY; });
+  caixa.addEventListener('pointerup', (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0;
+    const dy = e.clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) < 36 || Math.abs(dx) < Math.abs(dy)) return;
+    irParaDica(dicaPag + (dx < 0 ? 1 : -1));
+  });
+  caixa.addEventListener('pointercancel', () => { x0 = null; });
+}
 
 // Quanto falta para as latinhas trocarem de lugar. O servidor manda isso em
 // toda consulta de spawn; aqui só vira texto.
@@ -1011,19 +1191,6 @@ function faltaParaTrocar() {
   const falta = trocaEmSegundos - passou;
   if (falta <= 0) return null;
   return Math.max(1, Math.round(falta / 60));
-}
-
-function dicaDaEnergia() {
-  const min = faltaParaTrocar();
-  const quando = min ? `As próximas trocam em <em>${min} min</em>.` : 'Elas trocam a cada <em>20 minutos</em>.';
-  mostrarDica({
-    id: 'energia',
-    titulo: 'ENERGIA NA RUA',
-    arte: latinhaSVG({ tipo: 'lata', tam: 46 }),
-    corpo: 'Essas cápsulas são a carga que sobrou da rede, aflorando pelos ramais '
-      + 'debaixo das ruas. Chegue a <em>20 m</em> de uma para recolher.<br>'
-      + `${quando} O ponto seca e o resíduo brota em outro lugar — então vale sair andando.`,
-  });
 }
 
 /* ===================== tela de carregando ===================== */
@@ -1061,7 +1228,7 @@ function sairDaTela() {
   setTimeout(() => {
     tela.hidden = true;
     // espera o mapa assentar: balão em cima de tela ainda mexendo ninguém lê
-    setTimeout(dicaDaEnergia, 900);
+    setTimeout(mostrarDicas, 900);
   }, 500);
 }
 
@@ -1155,7 +1322,7 @@ async function ligarBoneco3d() {
   const tela = $('boneco3d');
   if (!tela) return;
   try {
-    const mod = await import('./boneco3d.js?v=52');
+    const mod = await import('./boneco3d.js?v=53');
     ultimoVisual = visualCru();
     boneco3d = await mod.criarBoneco(tela, visualDoBoneco());
     tela.hidden = false;
